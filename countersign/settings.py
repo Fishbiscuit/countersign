@@ -21,6 +21,12 @@ class SettingsError(RuntimeError):
     pass
 
 
+def env(name: str, default: str = "") -> str:
+    """An environment value, treating a blank `NAME=` line in .env the same as unset."""
+    value = os.environ.get(name, "").strip()
+    return value or default
+
+
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
@@ -57,35 +63,35 @@ class Settings:
 
 def load_settings(env_file: Path | None = None) -> Settings:
     load_dotenv(env_file or Path.cwd() / ".env", override=False)
-    backend = os.environ.get("COUNTERSIGN_BACKEND", "").strip().lower()
+    backend = env("COUNTERSIGN_BACKEND", "").lower()
     if backend not in BACKENDS:
         raise SettingsError(
             "Set COUNTERSIGN_BACKEND to 'sandbox' (real PayPal sandbox API) or 'simulated' "
             "(no PayPal calls). Countersign does not pick one for you."
         )
-    client_id = os.environ.get("PAYPAL_CLIENT_ID", "").strip()
-    client_secret = os.environ.get("PAYPAL_CLIENT_SECRET", "").strip()
+    client_id = env("PAYPAL_CLIENT_ID", "")
+    client_secret = env("PAYPAL_CLIENT_SECRET", "")
     if backend == "sandbox" and not (client_id and client_secret):
         raise SettingsError("COUNTERSIGN_BACKEND=sandbox needs PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET (sandbox app).")
 
-    port = int(os.environ.get("PORT", os.environ.get("COUNTERSIGN_PORT", "8484")))
-    host = os.environ.get("COUNTERSIGN_HOST", "127.0.0.1")
-    data_dir = Path(os.environ.get("COUNTERSIGN_DATA_DIR", ".countersign")).expanduser().resolve()
+    port = int(env("PORT", env("COUNTERSIGN_PORT", "8484")))
+    host = env("COUNTERSIGN_HOST", "127.0.0.1")
+    data_dir = Path(env("COUNTERSIGN_DATA_DIR", ".countersign")).expanduser().resolve()
     return Settings(
         data_dir=data_dir,
         backend=backend,
         paypal_client_id=client_id,
         paypal_client_secret=client_secret,
-        paypal_webhook_id=os.environ.get("PAYPAL_WEBHOOK_ID", "").strip(),
+        paypal_webhook_id=env("PAYPAL_WEBHOOK_ID", ""),
         host=host,
         port=port,
-        public_url=os.environ.get("COUNTERSIGN_PUBLIC_URL", f"http://{host}:{port}").rstrip("/"),
-        approval_timeout_s=float(os.environ.get("COUNTERSIGN_APPROVAL_TIMEOUT", "90")),
-        gateway_mcp_port=int(os.environ.get("COUNTERSIGN_GATEWAY_MCP_PORT", "3410")),
-        gateway_api_port=int(os.environ.get("COUNTERSIGN_GATEWAY_API_PORT", "3411")),
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", "").strip(),
-        anthropic_model=os.environ.get("COUNTERSIGN_EXPLAINER_MODEL", "claude-opus-5-5"),
-        demo_shop=os.environ.get("COUNTERSIGN_DEMO_SHOP", "").strip() in ("1", "true", "yes"),
+        public_url=env("COUNTERSIGN_PUBLIC_URL", f"http://{host}:{port}").rstrip("/"),
+        approval_timeout_s=float(env("COUNTERSIGN_APPROVAL_TIMEOUT", "90")),
+        gateway_mcp_port=int(env("COUNTERSIGN_GATEWAY_MCP_PORT", "3410")),
+        gateway_api_port=int(env("COUNTERSIGN_GATEWAY_API_PORT", "3411")),
+        anthropic_api_key=env("ANTHROPIC_API_KEY", ""),
+        anthropic_model=env("COUNTERSIGN_EXPLAINER_MODEL", "claude-opus-5-5"),
+        demo_shop=env("COUNTERSIGN_DEMO_SHOP", "") in ("1", "true", "yes"),
     )
 
 
