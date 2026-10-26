@@ -1,0 +1,9 @@
+.git
+.env
+.venv
+.countersign
+**/__pycache__
+.pytest_cache
+.ruff_cache
+console/node_modules
+console/dist

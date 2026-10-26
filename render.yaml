@@ -1,0 +1,30 @@
+# Render Blueprint: one web service with a small disk for the money trail.
+# Deploy: Render dashboard → New → Blueprint → this repository.
+# Secrets marked `sync: false` are asked for when you create the Blueprint.
+services:
+  - type: web
+    name: countersign
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/status
+    disk:
+      name: countersign-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: COUNTERSIGN_BACKEND
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: COUNTERSIGN_ADMIN_TOKEN
+        generateValue: true
+      - key: COUNTERSIGN_DEMO_SHOP
+        value: "1"
+      - key: COUNTERSIGN_APPROVAL_TIMEOUT
+        value: "90"

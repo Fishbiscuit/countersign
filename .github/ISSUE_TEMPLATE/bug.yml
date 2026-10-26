@@ -1,0 +1,29 @@
+name: Bug report
+description: Something in Countersign does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: PayPal backend
+      options: [PayPal Sandbox, Simulated PayPal]
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Agent client
+      placeholder: Claude Code, ChatGPT, OpenClaw, ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from the server and `.countersign/gateway.log`. Remove keys and tokens first.
+      render: text

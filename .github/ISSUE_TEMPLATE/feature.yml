@@ -1,0 +1,15 @@
+name: Feature request
+description: A rule, client, or PayPal capability Countersign should support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What an agent did, or could do, with money that Countersign should handle.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
