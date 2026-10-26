@@ -1,0 +1,10 @@
+.env
+.countersign/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+console/node_modules/
+console/dist/
+dist/

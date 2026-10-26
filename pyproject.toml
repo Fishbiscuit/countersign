@@ -1,0 +1,51 @@
+[project]
+name = "countersign"
+version = "0.1.0"
+description = "A second signature on every money move an AI agent makes: a PayPal safety gateway for MCP agents."
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "open-edison",
+    "anthropic[mcp]>=0.90",
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "mcp>=1.12.0,<2",
+    "python-dotenv>=1.0.1",
+    "uvicorn>=0.35.0",
+]
+
+[project.scripts]
+countersign = "countersign.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=1.0.0",
+    "ruff>=0.12.3",
+]
+
+[tool.uv.sources]
+open-edison = { path = "gateway", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["countersign"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+extend-exclude = ["gateway", "console"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "BLE"]
+ignore = ["E501"]  # long user-facing strings; layout is handled by `ruff format`
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["acceptance: drives the real agent entrypoint end to end (starts the full stack)"]
