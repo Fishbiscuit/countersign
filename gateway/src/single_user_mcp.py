@@ -8,6 +8,7 @@ Handles MCP protocol communication with running servers using a unified composit
 import asyncio
 import dataclasses
 import json
+import os
 import time
 from typing import Any, TypedDict, cast
 
@@ -115,9 +116,10 @@ class SingleUserMCP(FastMCP[Any]):
         self._tool_schemas: dict[str, dict[str, dict[str, Any | None]]] = {}
 
         # Add built-in demo tools
-        self._setup_demo_tools()
-        self._setup_demo_resources()
-        self._setup_demo_prompts()
+        if os.environ.get("COUNTERSIGN_HIDE_BUILTINS") != "1":
+            self._setup_demo_tools()
+            self._setup_demo_resources()
+            self._setup_demo_prompts()
 
     async def import_server(
         self,

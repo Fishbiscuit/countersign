@@ -5,6 +5,7 @@ This middleware tracks tool usage patterns across all mounted tool calls,
 providing session-level statistics accessible via contextvar.
 """
 
+import json
 import time
 import uuid
 from collections.abc import Generator
@@ -30,6 +31,7 @@ from sqlalchemy import JSON, Column, Integer, String, create_engine, event, text
 from sqlalchemy.orm import Session, declarative_base
 from sqlalchemy.sql import select
 
+from countersign import gateway_hook
 from src import events
 from src.config import get_config_dir  # type: ignore[reportMissingImports]
 from src.middleware.data_access_tracker import (
@@ -276,6 +278,20 @@ def _persist_session_to_db(session: MCPSession) -> None:
         db_session.commit()
 
 
+
+def _hide_countersign_intent(tool: Any) -> Any:
+    """Agents never see the intent argument; the gateway sets it after a money move is allowed."""
+    if not gateway_hook.is_countersign_tool(getattr(tool, "key", "")):
+        return tool
+    params = dict(getattr(tool, "parameters", None) or {})
+    properties = dict(params.get("properties") or {})
+    if gateway_hook.INTENT_ARG not in properties:
+        return tool
+    properties.pop(gateway_hook.INTENT_ARG)
+    params["properties"] = properties
+    params["required"] = [r for r in params.get("required") or [] if r != gateway_hook.INTENT_ARG]
+    return tool.model_copy(update={"parameters": params})
+
 class SessionTrackingMiddleware(Middleware):
     """
     Middleware that tracks tool call statistics for all mounted tools.
@@ -391,7 +407,7 @@ class SessionTrackingMiddleware(Middleware):
 
             log.trace(f"🔍 Getting permissions for tool {tool_name}")
             if perms.is_tool_enabled(tool_name):
-                allowed_tools.append(tool)
+                allowed_tools.append(_hide_countersign_intent(tool))
             else:
                 log.warning(
                     f"🔍 Tool {tool_name} is disabled or not configured and will not be allowed"
@@ -424,34 +440,41 @@ class SessionTrackingMiddleware(Middleware):
 
         assert session.data_access_tracker is not None
         log.debug(f"🔍 Analyzing tool {context.message.name} for security implications")
+        countersign_tool = gateway_hook.is_countersign_tool(context.message.name)
+        trifecta_reason: str | None = None
         try:
             session.data_access_tracker.add_tool_call(context.message.name)
         except SecurityError as e:
-            # Publish pre-block event enriched with session_id then wait up to 30s for approval
-            events.fire_and_forget(
-                {
-                    "type": "mcp_pre_block",
-                    "kind": "tool",
-                    "name": context.message.name,
-                    "session_id": session_id,
-                    "error": str(e),
-                }
+            if gateway_hook.money_action(context.message.name) is not None:
+                # Countersign turns the trifecta into a hold on this exact money move (below),
+                # instead of Open Edison's per-tool approval.
+                trifecta_reason = e.reason
+            else:
+                await self._open_edison_approval(e, session, session_id, new_tool_call, context.message.name)
+        if countersign_tool:
+            arguments = cast(dict[str, Any], context.message.arguments or {})
+            context.message.arguments = arguments
+            outcome = await gateway_hook.get_guard().check(
+                context.message.name,
+                arguments,
+                {k.lower(): v for k, v in get_http_headers(include_all=True).items()},
+                session_id,
+                private_seen=session.data_access_tracker.has_private_data_access,
+                trifecta=trifecta_reason,
             )
-            approved = await events.wait_for_approval(
-                session_id, "tool", context.message.name, timeout_s=30.0
-            )
-            if not approved:
-                # Mark and persist blocked tool call
+            if outcome.kind == "block":
                 new_tool_call.status = "blocked"
-                # Persist immediately so UI shows blocked entry
                 _persist_session_to_db(session)
-                # Return formatted SecurityError message (includes ASCII art)
-                raise ToolError(str(e)) from e
-
-            # Approved: apply effects and proceed
-            session.data_access_tracker.apply_effects_after_manual_approval(
-                "tool", context.message.name
-            )
+                raise ToolError(outcome.message)
+            if outcome.kind == "replay":
+                new_tool_call.status = "ok"
+                _persist_session_to_db(session)
+                return ToolResult(
+                    content=[mt.TextContent(type="text", text=json.dumps(outcome.result, indent=2))],
+                    structured_content=outcome.result,
+                )
+            if outcome.intent_id:
+                arguments[gateway_hook.INTENT_ARG] = outcome.intent_id
         # Telemetry: record tool call
         record_tool_call(context.message.name)
 
@@ -468,6 +491,7 @@ class SessionTrackingMiddleware(Middleware):
             new_tool_call.duration_ms = (time.perf_counter() - start_time) * 1000.0
 
             _persist_session_to_db(session)
+            self._remember_untrusted(session_id, context.message.name, result)
 
             return result
         except Exception:
@@ -476,6 +500,42 @@ class SessionTrackingMiddleware(Middleware):
 
             _persist_session_to_db(session)
             raise
+
+    def _remember_untrusted(self, session_id: str, tool_name: str, result: Any) -> None:
+        """Keep what an agent read from untrusted sources, so a human can see it next to a held payment."""
+        try:
+            if Permissions().get_tool_permission(tool_name).read_untrusted_public_data:
+                gateway_hook.get_guard().record_context(
+                    session_id, tool_name, "untrusted", gateway_hook.result_text(result)
+                )
+        except Exception:  # noqa: BLE001 - context capture must never break the tool call
+            log.exception("Countersign: failed to record untrusted context")
+
+    async def _open_edison_approval(
+        self, e: SecurityError, session: MCPSession, session_id: str, new_tool_call: ToolCall, tool_name: str
+    ) -> None:
+        """Open Edison's original per-tool approval flow, kept for non-money tools."""
+        # Publish pre-block event enriched with session_id then wait up to 30s for approval
+        events.fire_and_forget(
+            {
+                "type": "mcp_pre_block",
+                "kind": "tool",
+                "name": tool_name,
+                "session_id": session_id,
+                "error": str(e),
+            }
+        )
+        approved = await events.wait_for_approval(session_id, "tool", tool_name, timeout_s=30.0)
+        if not approved:
+            # Mark and persist blocked tool call
+            new_tool_call.status = "blocked"
+            # Persist immediately so UI shows blocked entry
+            _persist_session_to_db(session)
+            raise ToolError(str(e)) from e
+
+        # Approved: apply effects and proceed
+        assert session.data_access_tracker is not None
+        session.data_access_tracker.apply_effects_after_manual_approval("tool", tool_name)
 
     # Hooks for Resources
     async def on_list_resources(  # noqa
