@@ -68,7 +68,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
     if backend == "sandbox" and not (client_id and client_secret):
         raise SettingsError("COUNTERSIGN_BACKEND=sandbox needs PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET (sandbox app).")
 
-    port = int(os.environ.get("PORT", os.environ.get("COUNTERSIGN_PORT", "8787")))
+    port = int(os.environ.get("PORT", os.environ.get("COUNTERSIGN_PORT", "8484")))
     host = os.environ.get("COUNTERSIGN_HOST", "127.0.0.1")
     data_dir = Path(os.environ.get("COUNTERSIGN_DATA_DIR", ".countersign")).expanduser().resolve()
     return Settings(
@@ -84,7 +84,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         gateway_mcp_port=int(os.environ.get("COUNTERSIGN_GATEWAY_MCP_PORT", "3410")),
         gateway_api_port=int(os.environ.get("COUNTERSIGN_GATEWAY_API_PORT", "3411")),
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", "").strip(),
-        anthropic_model=os.environ.get("COUNTERSIGN_EXPLAINER_MODEL", "claude-haiku-5-5"),
+        anthropic_model=os.environ.get("COUNTERSIGN_EXPLAINER_MODEL", "claude-opus-5-5"),
         demo_shop=os.environ.get("COUNTERSIGN_DEMO_SHOP", "").strip() in ("1", "true", "yes"),
     )
 

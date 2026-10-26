@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import socket
 import sys
 from pathlib import Path
 from typing import Any
@@ -103,7 +104,20 @@ def _write_private(path: Path, data: dict[str, Any]) -> None:
     path.chmod(0o600)
 
 
+def ensure_ports_free(settings: Settings) -> None:
+    for port, setting in (
+        (settings.gateway_mcp_port, "COUNTERSIGN_GATEWAY_MCP_PORT"),
+        (settings.gateway_api_port, "COUNTERSIGN_GATEWAY_API_PORT"),
+    ):
+        with socket.socket() as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError as exc:
+                raise RuntimeError(f"Gateway port {port} is already in use. Stop whatever holds it, or set {setting}.") from exc
+
+
 async def start_gateway(settings: Settings, secrets: Secrets) -> asyncio.subprocess.Process:
+    ensure_ports_free(settings)
     gateway_dir = write_gateway_config(settings, secrets)
     env = {
         **os.environ,
