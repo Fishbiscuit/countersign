@@ -27,12 +27,12 @@ from countersign.settings import load_settings
 def fresh_capture(paypal: SandboxBackend) -> str:
     checkout = paypal.create_checkout("20.00", "USD", "Countersign sandbox idempotency check")
     print(f"Approve this sandbox checkout as the sandbox buyer:\n  {checkout.approve_url}", flush=True)
-    for _ in range(120):
+    for _ in range(360):
         time.sleep(5)
         captured = paypal.capture_checkout(checkout.order_id)
         if captured.capture_id:
             return captured.capture_id
-    raise SystemExit("Checkout was not approved within 10 minutes")
+    raise SystemExit("Checkout was not approved within 30 minutes")
 
 
 def refund_id(paypal: SandboxBackend, capture: str, request_id: str | None, mock: str | None = None) -> str:

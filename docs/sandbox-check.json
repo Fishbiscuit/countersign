@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-27T12:22:58+00:00",
+  "capture_id": "6AT40544N48659002",
+  "A_no_request_id": {
+    "refund_ids": [
+      "6ST132454K129225L",
+      "121813946L966542N"
+    ],
+    "paid_twice": true
+  },
+  "B_same_request_id": {
+    "refund_ids": [
+      "99X2711218556241V",
+      "99X2711218556241V"
+    ],
+    "paid_once": true
+  },
+  "C_mocked_failure_then_retry": {
+    "mocked_attempt": {
+      "status": 500,
+      "name": "INTERNAL_SERVER_ERROR",
+      "debug_id": "f1346972bf9e0"
+    },
+    "retry_with_same_id": {
+      "refund_ids": [
+        "0VS49124D3364781G",
+        "0VS49124D3364781G"
+      ],
+      "paid_once": true
+    }
+  },
+  "capture_status_after": "PARTIALLY_REFUNDED"
+}

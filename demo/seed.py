@@ -41,13 +41,13 @@ def main() -> int:
         if not checkout.get("capture_id"):
             print(f"\nOrder {order['order']} ({order['amount']} {order['currency']}): approve it as the sandbox buyer:")
             print(f"  {checkout['approve_url']}")
-            for _ in range(120):
+            for _ in range(360):
                 time.sleep(5)
                 checkout = api.post(f"/api/test-payments/{checkout['order_id']}/capture").raise_for_status().json()
                 if checkout.get("capture_id"):
                     break
             else:
-                print("  Not approved within 10 minutes; skipping.")
+                print("  Not approved within 30 minutes; skipping.")
                 continue
         payments[order["order"]] = {
             "capture_id": checkout["capture_id"],

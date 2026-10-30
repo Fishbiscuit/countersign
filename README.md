@@ -44,7 +44,7 @@ The same six failures, run against fresh payments: once with an agent calling Pa
 | Larger fair refund (human approves) | 40.00 | 40.00 | 40.00 · approved |
 | **Moved that should not have** | | **631.00** | **0.00** |
 
-The bench uses the simulator because lost responses need scripted faults, and its "human" follows each scenario's script. `bench/sandbox_check.py` runs the idempotency part against the real PayPal Sandbox (retry with and without `PayPal-Request-Id`, plus a mocked PayPal failure). What has been verified so far, and how, is in [docs/evidence.md](docs/evidence.md).
+The bench uses the simulator because lost responses need scripted faults, and its "human" follows each scenario's script. `bench/sandbox_check.py` runs the idempotency part against the real PayPal Sandbox. In the sandbox, a retried refund without `PayPal-Request-Id` refunded twice; with the same id it returned the first refund, including after a mocked PayPal 500 ([result](docs/sandbox-check.json)). What has been verified so far, and how, is in [docs/evidence.md](docs/evidence.md).
 
 ![Chaos bench in the console](docs/media/bench.jpg)
 
@@ -80,7 +80,7 @@ uv run countersign agent "Kiln support desk" --client claude-code
 ### Use the real PayPal Sandbox
 
 1. At [developer.paypal.com](https://developer.paypal.com), switch to **Sandbox**, then **Apps & Credentials → Create App** (type Merchant).
-2. In `.env`: `COUNTERSIGN_BACKEND=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`.
+2. In `.env`: `COUNTERSIGN_BACKEND=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`. `uv run python -m bench.check_keys` confirms PayPal accepts them.
 3. `make serve`, then `uv run python demo/seed.py` prints one checkout link per demo order. Approve each with your sandbox **personal** account.
 
 Countersign's sandbox backend is fixed to `api-m.sandbox.paypal.com`; there is no setting that points it at live PayPal. **Simulated PayPal** makes no PayPal calls, and every screen labels which backend is active. Countersign never switches between them on its own.
