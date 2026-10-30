@@ -455,10 +455,14 @@ class Store:
     def summary(self, since: datetime) -> dict[str, Any]:
         with self._connect() as db:
             rows = db.execute(
-                "SELECT status, COUNT(*) AS n, SUM(CAST(amount AS REAL)) AS total, SUM(attempts - 1) AS retries "
-                "FROM intents WHERE created_at >= ? GROUP BY status",
+                "SELECT status, currency, COUNT(*) AS n, SUM(CAST(amount AS REAL)) AS total, SUM(attempts - 1) AS retries "
+                "FROM intents WHERE created_at >= ? GROUP BY status, currency",
                 (iso(since),),
             ).fetchall()
-        by_status = {row["status"]: {"count": row["n"], "total": round(row["total"] or 0, 2)} for row in rows}
+        by_status: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            entry = by_status.setdefault(row["status"], {"count": 0, "totals": {}})
+            entry["count"] += row["n"]
+            entry["totals"][row["currency"]] = round(row["total"] or 0, 2)
         retries = sum(int(row["retries"] or 0) for row in rows)
         return {"by_status": by_status, "retries_absorbed": retries}

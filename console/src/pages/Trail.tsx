@@ -11,7 +11,7 @@ import { CircleCheck, CircleSlash, Download, PauseCircle, Sparkles, X } from "lu
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Avatar, StatusPill } from "../components/bits";
 import { api, type Intent, type Status } from "../lib/api";
-import { clock, money } from "../lib/format";
+import { addTotals, clock, money, moneyTotals } from "../lib/format";
 import { useLoad } from "../lib/live";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -123,7 +123,7 @@ export function Trail({ status }: { status: Status }) {
   };
 
   const executed = (data ?? []).filter((i) => i.status === "executed");
-  const paidTotal = executed.reduce((sum, i) => sum + (i.amount_value ?? 0), 0);
+  const paidTotals = addTotals(...executed.map((i) => ({ [i.currency]: i.amount_value ?? 0 })));
 
   return (
     <>
@@ -182,7 +182,7 @@ export function Trail({ status }: { status: Status }) {
         <span style={{ flex: 1 }} />
         <input className="input" placeholder="Quick search" value={quick} onChange={(e) => setQuick(e.target.value)} style={{ width: 200 }} />
         <span className="muted num">
-          {executed.length} paid · {money(paidTotal)}
+          {executed.length} paid · {moneyTotals(paidTotals)}
         </span>
         <button className="btn" onClick={() => grid.current?.exportDataAsCsv({ fileName: "countersign-money-trail.csv" })}>
           <Download size={15} /> CSV

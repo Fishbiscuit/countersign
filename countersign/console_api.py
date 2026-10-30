@@ -387,7 +387,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return FileResponse(candidate)
         index = CONSOLE_DIST / "index.html"
         if index.exists():
-            return FileResponse(index)
+            return FileResponse(index, headers={"Cache-Control": "no-cache"})
         return JSONResponse({"error": "Console not built. Run `make console`."}, status_code=503)
 
     return app

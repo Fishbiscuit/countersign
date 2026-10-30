@@ -129,7 +129,7 @@ export interface Status {
 }
 
 export interface Summary {
-  by_status: Record<string, { count: number; total: number }>;
+  by_status: Record<string, { count: number; totals: Record<string, number> }>;
   retries_absorbed: number;
   agents: number;
   held_now: number;

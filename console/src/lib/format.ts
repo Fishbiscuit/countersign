@@ -4,10 +4,27 @@ export function money(amount: string | number, currency = "USD"): string {
   const value = typeof amount === "number" ? amount : Number(amount);
   if (!Number.isFinite(value)) return `${amount} ${currency}`;
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, currencyDisplay: "narrowSymbol" }).format(value);
+    // A fixed locale: in en-SG, for example, SGD would otherwise show as a bare $ and USD as US$.
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
   } catch {
     return `${value.toFixed(2)} ${currency}`;
   }
+}
+
+export function addTotals(...groups: (Record<string, number> | undefined)[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const group of groups) {
+    for (const [currency, amount] of Object.entries(group ?? {})) totals[currency] = (totals[currency] ?? 0) + amount;
+  }
+  return totals;
+}
+
+/** Amounts in different currencies can't be added, so each keeps its own total. */
+export function moneyTotals(totals: Record<string, number>): string {
+  const parts = Object.entries(totals)
+    .sort()
+    .map(([currency, total]) => money(total, currency));
+  return parts.length ? parts.join(" + ") : money(0);
 }
 
 export function ago(iso: string | null | undefined, now = Date.now()): string {

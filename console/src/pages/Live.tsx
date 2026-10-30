@@ -3,7 +3,7 @@ import { Suspense, lazy } from "react";
 import { HoldList } from "../components/HoldList";
 import { StatusPill } from "../components/bits";
 import { api, type Intent, type Status } from "../lib/api";
-import { ago, money } from "../lib/format";
+import { addTotals, ago, money, moneyTotals } from "../lib/format";
 import { useLoad, useNow } from "../lib/live";
 
 const Timeline = lazy(() => import("./Timeline"));
@@ -15,7 +15,7 @@ export function Live({ status }: { status: Status }) {
   const s = summary.data;
   const paid = s?.by_status.executed;
   const stopped = (s?.by_status.denied?.count ?? 0) + (s?.by_status.blocked?.count ?? 0) + (s?.by_status.expired?.count ?? 0);
-  const stoppedAmount = (s?.by_status.denied?.total ?? 0) + (s?.by_status.blocked?.total ?? 0) + (s?.by_status.expired?.total ?? 0);
+  const stoppedTotals = addTotals(s?.by_status.denied?.totals, s?.by_status.blocked?.totals, s?.by_status.expired?.totals);
 
   return (
     <>
@@ -31,9 +31,9 @@ export function Live({ status }: { status: Status }) {
       </header>
 
       <section className="tiles" aria-label="Summary">
-        <Tile label="Paid out" value={money(paid?.total ?? 0)} note={`${paid?.count ?? 0} moves executed`} />
+        <Tile label="Paid out" value={moneyTotals(paid?.totals ?? {})} note={`${paid?.count ?? 0} moves executed`} />
         <Tile label="Waiting for you" value={String(s?.held_now ?? 0)} note="held for a countersignature" />
-        <Tile label="Stopped" value={money(stoppedAmount)} note={`${stopped} denied, blocked or expired`} />
+        <Tile label="Stopped" value={moneyTotals(stoppedTotals)} note={`${stopped} denied, blocked or expired`} />
         <Tile label="Retries absorbed" value={String(s?.retries_absorbed ?? 0)} note="never paid twice" />
         <Tile label="Agents connected" value={String(s?.agents ?? 0)} note="each with its own mandate" />
       </section>

@@ -6,13 +6,13 @@ from countersign.policy import DEFAULT_MANDATE
 from countersign.store import Store, iso, now
 
 
-def make_intent(store, agent_id, status="held", expires=None):
+def make_intent(store, agent_id, status="held", expires=None, currency="USD"):
     intent = store.create_intent(
         agent_id=agent_id,
         session_id="s1",
         action="refund",
         amount="10.00",
-        currency="USD",
+        currency=currency,
         target="CAP",
         reference="T-1",
         fingerprint="fp",
@@ -30,6 +30,14 @@ def test_agent_key_is_hashed_and_resolves(tmp_path):
     assert store.agent_by_key(key + "x") is None
     store.set_agent_active(agent["id"], False)
     assert store.agent_by_key(key) is None
+
+
+def test_summary_never_adds_currencies_together(tmp_path):
+    store = Store(tmp_path / "cs.db")
+    for currency in ("USD", "USD", "SGD"):
+        make_intent(store, "agt", status="executed", currency=currency)
+    executed = store.summary(now() - timedelta(hours=1))["by_status"]["executed"]
+    assert executed == {"count": 3, "totals": {"USD": 20.0, "SGD": 10.0}}
 
 
 def test_a_hold_can_be_decided_once(tmp_path):
