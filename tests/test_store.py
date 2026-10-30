@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+import pytest
+
 from countersign.policy import DEFAULT_MANDATE
 from countersign.store import Store, iso, now
 
@@ -49,6 +51,23 @@ def test_executed_moves_cannot_be_decided(tmp_path):
     store = Store(tmp_path / "cs.db")
     intent = make_intent(store, "agt", status="executed")
     assert store.decide(intent.id, False, "human") is None
+
+
+@pytest.mark.parametrize("status", ["executed", "denied", "approved", "expired"])
+def test_a_retry_finds_its_intent_however_old(tmp_path, status):
+    store = Store(tmp_path / "cs.db")
+    intent = make_intent(store, "agt", status=status)
+    with store._tx() as db:
+        db.execute("UPDATE intents SET created_at = ? WHERE id = ?", (iso(now() - timedelta(days=30)), intent.id))
+    assert store.find_by_fingerprint("fp").id == intent.id
+
+
+@pytest.mark.parametrize("status", ["executed", "denied", "approved"])
+def test_a_decision_outranks_a_later_undecided_attempt(tmp_path, status):
+    store = Store(tmp_path / "cs.db")
+    decided = make_intent(store, "agt", status=status)
+    make_intent(store, "agt", status="expired")
+    assert store.find_by_fingerprint("fp").id == decided.id
 
 
 def test_events_are_ordered(tmp_path):

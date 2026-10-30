@@ -14,7 +14,7 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -342,11 +342,15 @@ class Store:
             row = db.execute("SELECT * FROM intents WHERE id = ?", (intent_id,)).fetchone()
         return Intent.from_row(row) if row else None
 
-    def find_by_fingerprint(self, fp: str, within: timedelta = timedelta(hours=24)) -> Intent | None:
+    def find_by_fingerprint(self, fp: str) -> Intent | None:
+        """The intent a retry belongs to, at any age. A payment or a human decision outranks a later undecided attempt."""
         with self._connect() as db:
             row = db.execute(
-                "SELECT * FROM intents WHERE fingerprint = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1",
-                (fp, iso(now() - within)),
+                """SELECT * FROM intents WHERE fingerprint = ?
+                   ORDER BY CASE status WHEN 'executed' THEN 0 WHEN 'denied' THEN 1 WHEN 'approved' THEN 2 ELSE 3 END,
+                            created_at DESC
+                   LIMIT 1""",
+                (fp,),
             ).fetchone()
         return Intent.from_row(row) if row else None
 
