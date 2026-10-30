@@ -149,6 +149,27 @@ async def test_denied_move_moves_nothing_and_stays_denied():
         assert bench.sim.money_moved()["payouts"]["count"] == 0
 
 
+@pytest.mark.parametrize("fault", ["lost_response", "server_error", "no_answer"])
+async def test_an_unconfirmed_payout_is_never_reported_as_unpaid(fault):
+    async with running_countersign() as bench:
+        nonce = f"T-{uuid.uuid4().hex[:10]}"
+        agent = await connect(bench, {"payout_allowlist": ["supplier@example.com"]})
+        bench.sim.inject("payout", fault)
+        url = f"{bench.base}/mcp/{agent['key']}/"
+        args = {"recipient_email": "supplier@example.com", "amount": "9.00", "reference": nonce}
+        async with streamablehttp_client(url) as (read, write, _), ClientSession(read, write) as session:
+            await session.initialize()
+            first = await session.call_tool("countersign_send_payout", args)
+            again = await session.call_tool("countersign_send_payout", args)
+        assert first.isError and "safe to retry" in first.content[0].text
+        assert "Nothing was paid" not in first.content[0].text
+        assert not again.isError
+        async with bench.api() as api:
+            trail = [i for i in (await api.get("/api/intents")).json() if i["reference"] == nonce]
+        assert len(trail) == 1 and trail[0]["status"] == "executed" and trail[0]["attempts"] == 2
+        assert bench.sim.money_moved()["payouts"] == {"count": 1, "total": "9.00"}
+
+
 async def test_unknown_key_is_rejected():
     async with running_countersign() as bench:
         async with bench.api() as api:

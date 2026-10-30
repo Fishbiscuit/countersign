@@ -2,8 +2,9 @@
 
 These are the only tools that move money. Each one refuses to run unless the
 gateway stamped an intent that Countersign allowed or a human approved, and the
-intent matches the arguments exactly. PayPal sees one PayPal-Request-Id per
-intent, so a retry after a lost response can never pay twice.
+intent matches the arguments exactly. PayPal sees the same request and batch
+IDs on every attempt at an intent, so a retry after a lost response can never
+pay twice.
 """
 
 from __future__ import annotations
@@ -60,6 +61,8 @@ def _execute(intent_id: str, action: str, target: str, amount: str, currency: st
                 intent.target, intent.amount, intent.currency, intent.request_id, intent.reference, note or None
             )
     except PayPalError as exc:
+        if exc.status >= 500:
+            raise _unconfirmed(intent, exc, exc.debug_id) from exc
         store.update_intent(
             intent.id, "execution_failed", status="failed", error=f"{exc.name}: {exc.message}", paypal_debug_id=exc.debug_id
         )
@@ -67,11 +70,7 @@ def _execute(intent_id: str, action: str, target: str, amount: str, currency: st
             f"PayPal refused this {action}: {exc.name} {exc.message} (debug id {exc.debug_id}). Nothing was paid."
         ) from exc
     except PayPalUnavailable as exc:
-        store.update_intent(intent.id, "execution_unconfirmed", error=str(exc))
-        raise MoneyMoveError(
-            f"PayPal did not confirm this {action} ({exc}). It is safe to retry with exactly the same arguments: "
-            "Countersign reuses the same PayPal-Request-Id, so it cannot pay twice."
-        ) from exc
+        raise _unconfirmed(intent, exc) from exc
 
     done = store.update_intent(
         intent.id,
@@ -95,6 +94,15 @@ def _execute(intent_id: str, action: str, target: str, amount: str, currency: st
         },
     )
     return _receipt(done)
+
+
+def _unconfirmed(intent: Intent, exc: Exception, debug_id: str | None = None) -> MoneyMoveError:
+    """The money may have moved, so the intent stays executing and the agent must not be told nothing was paid."""
+    store.update_intent(intent.id, "execution_unconfirmed", error=str(exc), paypal_debug_id=debug_id)
+    return MoneyMoveError(
+        f"PayPal did not confirm this {intent.action} ({exc}). It is safe to retry with exactly the same arguments: "
+        "Countersign sends PayPal the same IDs, so it cannot pay twice."
+    )
 
 
 def _receipt(intent: Intent, already_done: bool = False) -> dict[str, Any]:

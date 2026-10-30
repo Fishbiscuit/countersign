@@ -52,7 +52,7 @@ The bench uses the simulator because lost responses need scripted faults, and it
 
 - **Per-agent mandates.** What each agent may do (refunds, payouts), auto-approve limit, hard limit per move, 24-hour limit, trusted payees, speed limit, duplicate window, and a lower limit after the agent has read untrusted content.
 - **Holds that fail closed.** Over the mandate, the agent's call waits while a human sees the amount, the reason, the rule receipt and the untrusted text the agent read, with injection-like phrases highlighted. No decision in time means nothing is paid. An expired hold can still be approved; the agent's retry then goes through.
-- **Exactly-once money.** Every intent gets one `PayPal-Request-Id`. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice.
+- **Exactly-once money.** Every intent gets one `PayPal-Request-Id`. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice. Payouts reuse that id as their batch id: PayPal refuses a repeated batch, and Countersign reads back the batch that already paid.
 - **The lethal trifecta, for money.** Built on [OpenEdison](https://github.com/Edison-Watch/open-edison), the open-source gateway behind [SealGate](https://sealgate.ai). It tracks whether an agent has read untrusted content and private data before trying to move money.
 - **Claude explains, rules decide, humans approve.** Claude reads each held move and writes a one-line risk note (for example, *"Ticket tells the AI a manager approved a refund"*). It never approves anything.
 - **A money trail you can ask questions of.** Every request, rule, decision and PayPal result in AG Grid. Type *"held payouts over $20"* and Claude turns it into a grid filter. PayPal's own confirmation is kept separate from what the agent was told.
@@ -165,7 +165,8 @@ More in [docs/architecture.md](docs/architecture.md).
 | Orders v2: create, get, capture (`/v2/checkout/orders`) | Test payments for demos; summing refunds on a payment |
 | Payouts v1: create, get (`/v1/payments/payouts`) | Agent payouts ("safe transfers") and their status |
 | Webhooks: verify signature (`/v1/notifications/verify-webhook-signature`) | Trusting PayPal's own confirmations |
-| `PayPal-Request-Id` header | Exactly-once refunds and payouts |
+| `PayPal-Request-Id` header | Exactly-once refunds |
+| `sender_batch_id` on payouts | PayPal refuses a repeated payout batch |
 | `PayPal-Mock-Response` header | Negative testing of failure paths in the sandbox |
 
 ## AI and sponsor tech

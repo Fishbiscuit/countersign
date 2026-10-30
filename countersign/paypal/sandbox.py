@@ -118,9 +118,24 @@ class SandboxBackend:
                 }
             ],
         }
-        data = self.call("POST", "/v1/payments/payouts", body, request_id=request_id)
+        try:
+            data = self.call("POST", "/v1/payments/payouts", body, request_id=request_id)
+        except PayPalError as exc:
+            if not _repeats_batch(exc):
+                raise
+            data = self._original_batch(exc)
         batch = data["batch_header"]
         return MoneyResult(batch["payout_batch_id"], batch["batch_status"], amount, currency, raw=data)
+
+    def _original_batch(self, refused: PayPalError) -> dict[str, Any]:
+        """PayPal refuses a repeated payout batch instead of replaying it, and links the batch that already paid."""
+        links = [link["href"] for detail in refused.details for link in detail.get("link", [])]
+        if not links:
+            raise PayPalUnavailable("PayPal says this payout batch already exists but did not link it")
+        try:
+            return self.call("GET", f"/v1/payments/payouts/{links[0].rsplit('/', 1)[-1]}")
+        except PayPalError as exc:
+            raise PayPalUnavailable(f"PayPal says this payout batch already exists but would not show it: {exc}") from exc
 
     def money_status(self, action: str, paypal_id: str) -> str:
         if action == "refund":
@@ -174,6 +189,10 @@ class SandboxBackend:
             "webhook_event": event,
         }
         return self.call("POST", "/v1/notifications/verify-webhook-signature", body).get("verification_status") == "SUCCESS"
+
+
+def _repeats_batch(exc: PayPalError) -> bool:
+    return exc.name == "USER_BUSINESS_ERROR" and any(d.get("field") == "SENDER_BATCH_ID" for d in exc.details or [])
 
 
 def _error(response: httpx.Response) -> PayPalError:

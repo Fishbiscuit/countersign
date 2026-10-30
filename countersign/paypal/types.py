@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 
 class PayPalError(Exception):
-    """PayPal answered with an error. The money did not move."""
+    """PayPal answered with an error. A 4xx moved no money; after a 5xx it may have."""
 
     def __init__(self, status: int, name: str, message: str, debug_id: str | None = None, details: Any = None):
         self.status = status

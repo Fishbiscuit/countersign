@@ -3,8 +3,10 @@
 QZ asked for simulated transactions for development and offline demos. It
 follows PayPal's semantics where Countersign depends on them: refunds cannot
 exceed what was captured, and a repeated PayPal-Request-Id returns the original
-result instead of moving money again. It also takes scripted faults ("chaos"),
-so the bench can reproduce the failures agents cause in real systems.
+result instead of moving money again. (PayPal itself refuses a repeated payout
+batch; the sandbox backend turns that refusal into this same result.) It also
+takes scripted faults ("chaos"), so the bench can reproduce the failures agents
+cause in real systems.
 """
 
 from __future__ import annotations
