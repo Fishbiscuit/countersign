@@ -110,6 +110,7 @@ def ensure_ports_free(settings: Settings) -> None:
         (settings.gateway_api_port, "COUNTERSIGN_GATEWAY_API_PORT"),
     ):
         with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Connections from the last run don't count as in use.
             try:
                 probe.bind(("127.0.0.1", port))
             except OSError as exc:
