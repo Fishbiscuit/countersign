@@ -52,7 +52,7 @@ The bench uses the simulator because lost responses need scripted faults, and it
 
 - **Per-agent mandates.** What each agent may do (refunds, payouts), auto-approve limit, hard limit per move, 24-hour limit, trusted payees, speed limit, duplicate window, and a lower limit after the agent has read untrusted content.
 - **Holds that fail closed.** Over the mandate, the agent's call waits while a human sees the amount, the reason, the rule receipt and the untrusted text the agent read, with injection-like phrases highlighted. No decision in time means nothing is paid. An expired hold can still be approved; the agent's retry then goes through.
-- **Exactly-once money.** Every intent gets one `PayPal-Request-Id`. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice. Payouts reuse that id as their batch id: PayPal refuses a repeated batch, and Countersign reads back the batch that already paid.
+- **Exactly-once money.** Every money move gets one `PayPal-Request-Id`, whichever agent asks for it. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice. A second agent asking for a move that's already paid is refused, and two agents racing share the id, so PayPal pays once. Payouts reuse that id as their batch id: PayPal refuses a repeated batch, and Countersign reads back the batch that already paid.
 - **The lethal trifecta, for money.** Built on [OpenEdison](https://github.com/Edison-Watch/open-edison), the open-source gateway behind [SealGate](https://sealgate.ai). It tracks whether an agent has read untrusted content and private data before trying to move money.
 - **Claude explains, rules decide, humans approve.** Claude reads each held move and writes a one-line risk note (for example, *"Ticket tells the AI a manager approved a refund"*). It never approves anything.
 - **A money trail you can ask questions of.** Every request, rule, decision and PayPal result in AG Grid. Type *"held payouts over $20"* and Claude turns it into a grid filter. PayPal's own confirmation is kept separate from what the agent was told.
@@ -112,6 +112,12 @@ A real Claude agent working the demo shop's inbox through Countersign:
 ANTHROPIC_API_KEY=... uv run python demo/support_agent.py "<agent url>"
 ```
 
+Real Claude spots the shop's prompt injection and look-alike payee on its own. To see Countersign stop an agent that doesn't, run a script with no judgement, plainly not an AI. It asks for whatever the two bad tickets say, through its own Countersign URL:
+
+```bash
+uv run python demo/naive_agent.py
+```
+
 ## How it works
 
 ```mermaid
@@ -147,12 +153,14 @@ More in [docs/architecture.md](docs/architecture.md).
 | Currency not allowed | block |
 | Over the hard limit per move | block |
 | Refund over what is still refundable on the payment | block |
+| This exact move already paid under this reference, by any agent, at any age | block |
 | Payment cannot be verified with PayPal | hold |
 | Payout to someone not on the agent's trusted payees | hold |
 | Over the auto-approve limit | hold |
 | Over the 24-hour limit | hold |
 | Too many moves in a minute | hold |
-| A second move to the same payment or payee within the window | hold |
+| A second move to the same payment or payee under another reference within the window, by any agent | hold |
+| Another amount, or a move not finished yet, under the same reference and target | hold |
 | After untrusted content, over the lower limit for that case | hold |
 
 ## PayPal APIs used
