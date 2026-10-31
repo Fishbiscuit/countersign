@@ -107,3 +107,16 @@ def test_second_move_to_same_target_is_held_as_possible_duplicate():
     assert rule(decision, "duplicate.same_target").outcome == "hold"
     off = normalize_mandate({**DEFAULT_MANDATE, "payout_allowlist": ["friend@example.com"], "repeat_target_window_minutes": 0})
     assert evaluate(payout("10.00"), facts(mandate=off, recent_moves_to_target=1)).outcome == "pass"
+
+
+def test_a_move_another_agent_already_paid_is_refused():
+    decision = evaluate(refund("12.00"), facts(same_move_paid_by="Claude Code"))
+    assert decision.outcome == "block"
+    assert "Claude Code already paid" in rule(decision, "duplicate.same_reference").detail
+
+
+def test_another_amount_under_a_used_reference_waits_for_a_human_whatever_the_duplicate_window():
+    off = normalize_mandate({**DEFAULT_MANDATE, "repeat_target_window_minutes": 0})
+    decision = evaluate(refund("5.00"), facts(mandate=off, same_reference_moves=1))
+    assert decision.outcome == "hold"
+    assert rule(decision, "duplicate.same_reference").outcome == "hold"

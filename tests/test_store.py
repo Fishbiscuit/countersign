@@ -3,10 +3,10 @@ from datetime import timedelta
 import pytest
 
 from countersign.policy import DEFAULT_MANDATE
-from countersign.store import Store, iso, now
+from countersign.store import Store, fingerprint, iso, now, payment_key
 
 
-def make_intent(store, agent_id, status="held", expires=None, currency="USD"):
+def make_intent(store, agent_id, status="held", expires=None, currency="USD", reference="T-1"):
     intent = store.create_intent(
         agent_id=agent_id,
         session_id="s1",
@@ -14,12 +14,40 @@ def make_intent(store, agent_id, status="held", expires=None, currency="USD"):
         amount="10.00",
         currency=currency,
         target="CAP",
-        reference="T-1",
+        reference=reference,
         fingerprint="fp",
         request_id="cs-fp",
         backend="simulated",
     )
     return store.update_intent(intent.id, status=status, hold_expires_at=expires)
+
+
+def test_two_agents_share_a_payment_key_but_keep_their_own_retries():
+    move = ("refund", "CAP", "7.00", "USD", "T-1")
+    assert payment_key(*move) == payment_key("refund", " cap ", "7.00", "USD", " t-1 ")
+    assert payment_key(*move) != payment_key("refund", "CAP", "8.00", "USD", "T-1")
+    assert fingerprint("agent-a", *move) != fingerprint("agent-b", *move)
+
+
+def test_a_reference_finds_moves_by_any_agent_at_any_age(tmp_path):
+    store = Store(tmp_path / "cs.db")
+    paid = make_intent(store, "agent-a", status="executed")
+    store.update_intent(paid.id, created_at=iso(now() - timedelta(days=30)))
+    held = make_intent(store, "agent-b", status="held")
+    make_intent(store, "agent-c", status="denied")
+    make_intent(store, "agent-c", status="failed")
+    make_intent(store, "agent-c", status="expired")
+    make_intent(store, "agent-a", status="executed", reference="T-2")
+    found = store.moves_under_reference("refund", "cap", "t-1")
+    assert {m.id for m in found} == {paid.id, held.id}
+
+
+def test_a_possible_duplicate_counts_other_agents_but_not_the_same_reference(tmp_path):
+    store = Store(tmp_path / "cs.db")
+    make_intent(store, "agent-a", status="executed", reference="T-1")
+    since = now() - timedelta(minutes=60)
+    assert store.moves_to_target("refund", "CAP", "T-2", since) == 1
+    assert store.moves_to_target("refund", "CAP", "T-1", since) == 0
 
 
 def test_agent_key_is_hashed_and_resolves(tmp_path):

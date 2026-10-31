@@ -25,7 +25,7 @@ from countersign.paypal import make_backend
 from countersign.paypal.types import PaymentsBackend, PayPalError
 from countersign.policy import Facts, MoveRequest, evaluate, normalize_mandate
 from countersign.settings import Settings, load_settings
-from countersign.store import Intent, Store, fingerprint, iso, now
+from countersign.store import Intent, Store, fingerprint, iso, now, payment_key
 
 SERVER_PREFIX = "countersign_"
 AGENT_HEADER = "x-countersign-agent"
@@ -128,14 +128,18 @@ class Guard:
         mandate = normalize_mandate(agent["mandate"])
         context = self.store.session_context(session_id)
         untrusted = [c for c in context if c["kind"] == "untrusted"]
+        earlier = self.store.moves_under_reference(action, target, reference)
+        paid = next((m for m in earlier if m.status == "executed" and m.amount == fmt(amount) and m.currency == currency), None)
         facts = Facts(
             agent_active=agent["active"],
             mandate=mandate,
             spent_today=Decimal(self.store.spent_since(agent["id"], currency, now() - timedelta(hours=24))),
             moves_last_minute=self.store.moves_since(agent["id"], now() - timedelta(seconds=60)),
             recent_moves_to_target=self.store.moves_to_target(
-                agent["id"], action, target, now() - timedelta(minutes=mandate["repeat_target_window_minutes"])
+                action, target, reference, now() - timedelta(minutes=mandate["repeat_target_window_minutes"])
             ),
+            same_reference_moves=len(earlier),
+            same_move_paid_by=paid.context.get("agent_name", paid.agent_id) if paid else None,
             untrusted_sources=[c["tool"] for c in untrusted],
             private_data_seen=private_seen,
         )
@@ -152,7 +156,7 @@ class Guard:
             target=target,
             reference=reference,
             fingerprint=fp,
-            request_id="cs-" + fp[:40],
+            request_id="cs-" + payment_key(action, target, fmt(amount), currency, reference)[:40],
             backend=self.settings.backend,
             context={
                 "agent_name": agent["name"],

@@ -116,6 +116,12 @@ def fingerprint(agent_id: str, action: str, target: str, amount: str, currency: 
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def payment_key(action: str, target: str, amount: str, currency: str, reference: str) -> str:
+    """Same money move + same reference = one PayPal payment, whichever agent asks for it."""
+    raw = "|".join([action, target.strip().lower(), amount, currency, reference.strip().lower()])
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 @dataclass
 class Intent:
     id: str
@@ -420,15 +426,26 @@ class Store:
             ).fetchone()
         return int(row["n"])
 
-    def moves_to_target(self, agent_id: str, action: str, target: str, since: datetime) -> int:
-        """Money moves this agent already made (or has under way) to the same payment or recipient."""
+    def moves_to_target(self, action: str, target: str, reference: str, since: datetime) -> int:
+        """Money moves any agent already made (or has under way) to the same payment or recipient under another reference."""
         with self._connect() as db:
             row = db.execute(
-                "SELECT COUNT(*) AS n FROM intents WHERE agent_id = ? AND action = ? AND lower(target) = lower(?) "
-                "AND created_at >= ? AND status IN ('allowed', 'approved', 'executing', 'executed')",
-                (agent_id, action, target, iso(since)),
+                "SELECT COUNT(*) AS n FROM intents WHERE action = ? AND lower(target) = lower(?) "
+                "AND lower(reference) != lower(?) AND created_at >= ? "
+                "AND status IN ('allowed', 'approved', 'executing', 'executed')",
+                (action, target, reference, iso(since)),
             ).fetchone()
         return int(row["n"])
+
+    def moves_under_reference(self, action: str, target: str, reference: str) -> list[Intent]:
+        """Moves to this payment or recipient under this reference that paid or still could, by any agent, at any age."""
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM intents WHERE action = ? AND lower(target) = lower(?) AND lower(reference) = lower(?) "
+                "AND status IN ('held', 'allowed', 'approved', 'executing', 'executed')",
+                (action, target, reference),
+            ).fetchall()
+        return [Intent.from_row(row) for row in rows]
 
     def refunds_in_flight(self, capture_id: str, currency: str) -> str:
         """Refunds Countersign has let through that PayPal may not have recorded yet."""

@@ -197,6 +197,7 @@ function shortReason(rule: string): string {
       "payout.recipient": "New recipient",
       velocity: "Unusual speed",
       "duplicate.same_target": "Possible duplicate",
+      "duplicate.same_reference": "Reference already used",
       "context.lethal_trifecta": "After untrusted content",
       "refund.verified": "Payment not verified",
       "mandate.action": "Action not allowed",

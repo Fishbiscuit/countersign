@@ -235,7 +235,7 @@ function IntentDrawer({ intent, onClose }: { intent: Intent; onClose: () => void
           <dt>Intent</dt>
           <dd className="mono">{intent.id}</dd>
           <dt>PayPal-Request-Id</dt>
-          <dd className="mono" title="One per intent; every retry reuses it, so PayPal never pays twice">{intent.request_id}</dd>
+          <dd className="mono" title="One per money move; every retry and every agent reuses it, so PayPal never pays twice">{intent.request_id}</dd>
           <dt>Attempts</dt>
           <dd>{intent.attempts}</dd>
           <dt>Decided by</dt>

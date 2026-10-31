@@ -76,6 +76,8 @@ class Facts:
     spent_today: Decimal
     moves_last_minute: int
     recent_moves_to_target: int = 0
+    same_reference_moves: int = 0
+    same_move_paid_by: str | None = None
     refundable: Decimal | None = None
     refundable_error: str | None = None
     untrusted_sources: list[str] = field(default_factory=list)
@@ -187,6 +189,23 @@ def evaluate(request: MoveRequest, facts: Facts) -> Decision:
         )
     else:
         add("duplicate.same_target", "pass", "No recent move to this target under another reference")
+
+    if facts.same_move_paid_by:
+        add(
+            "duplicate.same_reference",
+            "block",
+            f"{facts.same_move_paid_by} already paid this exact {request.action} under reference {request.reference}, "
+            "so a second one is refused",
+        )
+    elif facts.same_reference_moves:
+        add(
+            "duplicate.same_reference",
+            "hold",
+            f"Possible duplicate: {facts.same_reference_moves} other move(s) to {request.target} under reference "
+            f"{request.reference}, for a different amount or not finished yet",
+        )
+    else:
+        add("duplicate.same_reference", "pass", "Nothing else to this target under this reference")
 
     untrusted_limit = Decimal(m["untrusted_auto_approve_up_to"])
     if facts.untrusted_sources:
