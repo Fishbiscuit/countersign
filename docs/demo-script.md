@@ -29,7 +29,7 @@ Sign in with the link from this command, in a second terminal that also has `COU
 uv run countersign token
 ```
 
-The payments are reused, so a new folder needs no new checkouts. The shop's sandbox orders have enough left for three more takes (1042 has 36.00 refundable, and each take uses 12.00). After that, run `demo/seed.py` in a new folder.
+The payments are reused, so a new folder needs no new checkouts. The shop's sandbox orders have enough left for two more takes (1042 has 24.00 refundable, and each take uses 12.00). After that, run `demo/seed.py` in a new folder.
 
 | Time | On screen | Say |
 | --- | --- | --- |

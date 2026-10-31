@@ -19,6 +19,7 @@ export interface UntrustedRead {
   tool: string;
   excerpt: string;
   at: string;
+  about_move?: boolean;
 }
 
 export type IntentStatus =

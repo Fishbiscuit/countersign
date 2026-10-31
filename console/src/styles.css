@@ -793,7 +793,7 @@ details.fold summary::-webkit-details-marker {
   display: none;
 }
 
-details.fold[open] summary .chev {
+details.fold[open] > summary .chev {
   transform: rotate(90deg);
 }
 

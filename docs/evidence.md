@@ -6,7 +6,7 @@ This page separates what has actually been run from what is still pending. Dates
 
 | What | How | Result |
 | --- | --- | --- |
-| Rules, simulator semantics, money trail | `make test` (55 tests) | Pass, 31 Oct |
+| Rules, simulator semantics, money trail | `make test` (63 tests) | Pass, 31 Oct |
 | A refund through the real agent endpoint, retried, with a fresh nonce in the reference | `tests/test_acceptance.py`: `/mcp/{key}/` → proxy → gateway → money server → simulator | Pass, 27 Oct. One intent, two attempts, one PayPal id, 7.00 refunded once |
 | A held move waits for a human, runs after approval | acceptance test | Pass, 27 Oct |
 | A denied move pays nothing, and a retry stays denied | acceptance test | Pass, 27 Oct |

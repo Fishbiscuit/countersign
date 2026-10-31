@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -162,7 +163,7 @@ class Guard:
                 "agent_name": agent["name"],
                 "client": agent["client"],
                 "note": str(arguments.get("reason") or arguments.get("note") or "")[:500],
-                "untrusted": [{"tool": c["tool"], "excerpt": c["excerpt"][:800], "at": c["at"]} for c in untrusted[-5:]],
+                "untrusted": sources_for_hold(untrusted, reference),
                 "private_data_seen": private_seen,
                 "gateway_trifecta": trifecta,
             },
@@ -289,6 +290,32 @@ def get_guard() -> Guard:
     if not secret:
         raise RuntimeError("COUNTERSIGN_GATEWAY_SECRET is not set for the gateway")
     return Guard(settings, store, make_backend(settings), secret)
+
+
+def is_about(excerpt: str, reference: str) -> bool:
+    """True for a source this reference identifies: the ticket with this id, not a list or a mention of it."""
+    wanted = reference.strip().lower()
+    text = excerpt.strip()
+    try:
+        data, end = json.JSONDecoder().raw_decode(text)
+    except ValueError:
+        data, end = None, 0
+    if not isinstance(data, dict | list):
+        return re.search(rf"(?<!\w){re.escape(wanted)}(?!\w)", text.lower()) is not None
+    # A list tool's items arrive joined by newlines, so a record with text after it is a list.
+    return (
+        isinstance(data, dict)
+        and end == len(text)
+        and any(isinstance(value, str | int) and str(value).strip().lower() == wanted for value in data.values())
+    )
+
+
+def sources_for_hold(untrusted: list[dict[str, Any]], reference: str, keep: int = 5) -> list[dict[str, Any]]:
+    """What a hold shows the human: the sources the move is about, then the latest of the rest."""
+    about = [c for c in untrusted if is_about(c["excerpt"], reference)][-keep:]
+    rest = [c for c in untrusted if c not in about]
+    latest = rest[max(0, len(rest) - (keep - len(about))) :]
+    return [{"tool": c["tool"], "excerpt": c["excerpt"][:800], "at": c["at"], "about_move": c in about} for c in about + latest]
 
 
 def result_text(result: Any) -> str:

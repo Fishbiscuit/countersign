@@ -223,6 +223,37 @@ async def test_the_naive_script_is_held_on_both_bad_tickets_and_pays_nothing():
         assert not any(agent["key"] in line for line in lines)
 
 
+async def test_a_hold_marks_the_ticket_the_move_is_about_after_reading_the_whole_inbox():
+    async with running_countersign(demo_shop=True) as bench:
+        agent = await connect(bench)
+        capture = await bench.fresh_payment("1043")
+        url = f"{bench.base}/mcp/{agent['key']}/"
+
+        async def refund_after_reading_everything():
+            async with streamablehttp_client(url) as (read, write, _), ClientSession(read, write) as session:
+                await session.initialize()
+                await session.call_tool("shop_list_tickets", {})
+                for ticket_id in ["T-1001", "T-1002", "T-1003", "T-1004"]:
+                    await session.call_tool("shop_read_ticket", {"ticket_id": ticket_id})
+                args = {"capture_id": capture, "amount": "40.00", "reference": "T-1002"}
+                return await session.call_tool("countersign_refund_payment", args)
+
+        asking = asyncio.create_task(refund_after_reading_everything())
+        async with bench.api() as api:
+            held: list[dict] = []
+            while not held:
+                await asyncio.sleep(0.1)
+                held = (await api.get("/api/intents", params={"status": "held"})).json()
+            await api.post(f"/api/intents/{held[0]['id']}/decision", json={"approve": False})
+        await asking
+
+        sources = held[0]["context"]["untrusted"]
+        assert len(sources) == 5
+        assert [bool(source.get("about_move")) for source in sources] == [True, False, False, False, False]
+        assert '"id":"T-1002"' in sources[0]["excerpt"].replace(" ", "")
+        assert any("SYSTEM NOTE" in source["excerpt"] for source in sources[1:])
+
+
 @pytest.mark.parametrize("fault", ["lost_response", "server_error", "no_answer"])
 async def test_an_unconfirmed_payout_is_never_reported_as_unpaid(fault):
     async with running_countersign() as bench:

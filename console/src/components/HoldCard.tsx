@@ -1,6 +1,6 @@
 import { ChevronRight, CircleCheck, CircleSlash, PauseCircle, ShieldAlert, Sparkles } from "lucide-react";
 import { useState } from "react";
-import type { Intent } from "../lib/api";
+import type { Intent, UntrustedRead } from "../lib/api";
 import { ago, describeTarget, highlight, money, readable } from "../lib/format";
 import { Seal, SignatureLine } from "./Seal";
 import { Avatar, Countdown } from "./bits";
@@ -23,6 +23,9 @@ export function HoldCard({ intent, now, timeoutSeconds, aiEnabled, decision, onD
   const [error, setError] = useState<string | null>(null);
   const held = intent.rules.filter((r) => r.outcome !== "pass");
   const untrusted = intent.context.untrusted ?? [];
+  const own = untrusted.filter((item) => item.about_move);
+  const others = untrusted.filter((item) => !item.about_move);
+  const aimedAtAgent = others.filter(instructsTheAgent).length;
   const explanation = intent.explanation;
   const expired = intent.status === "expired";
 
@@ -111,29 +114,34 @@ export function HoldCard({ intent, now, timeoutSeconds, aiEnabled, decision, onD
       {untrusted.length > 0 && (
         <details className="fold" open={!compact}>
           <summary>
-            <ChevronRight size={14} className="chev" /> What the agent read first ({untrusted.length} untrusted source
-            {untrusted.length > 1 ? "s" : ""})
+            <ChevronRight size={14} className="chev" />
+            {own.length > 0 ? (
+              <span>
+                What the agent read about <span className="mono">{intent.reference}</span>
+              </span>
+            ) : (
+              `What the agent read first (${sourceCount(untrusted.length)})`
+            )}
           </summary>
-          {untrusted.slice(-2).map((item) => {
-            const { headers, body } = readable(item.excerpt);
-            return (
-              <div key={item.at + item.tool}>
-                <div className="excerpt">
-                  {headers.length > 0 && (
-                    <div className="excerpt-head">
-                      {headers.map(([key, value]) => (
-                        <span key={key}>
-                          <b>{key}</b> {value}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {highlight(body).map((part, index) => (part.flagged ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>))}
-                </div>
-                <div className="ai-meta mono">{item.tool}</div>
-              </div>
-            );
-          })}
+          {(own.length > 0 ? own : untrusted.slice(-2)).map((item) => (
+            <Source key={item.at + item.tool} item={item} />
+          ))}
+          {own.length > 0 && others.length > 0 && (
+            <details className="fold">
+              <summary>
+                <ChevronRight size={14} className="chev" /> Also read {sourceCount(others.length, "other ")}
+                {aimedAtAgent > 0 && (
+                  <span className="reason">
+                    <ShieldAlert size={13} />
+                    {aimedAtAgent} {aimedAtAgent > 1 ? "contain" : "contains"} instructions aimed at the agent
+                  </span>
+                )}
+              </summary>
+              {others.map((item) => (
+                <Source key={item.at + item.tool} item={item} />
+              ))}
+            </details>
+          )}
         </details>
       )}
 
@@ -186,6 +194,35 @@ export function HoldCard({ intent, now, timeoutSeconds, aiEnabled, decision, onD
       {decision && <Seal approved={decision === "approved"} />}
     </article>
   );
+}
+
+function Source({ item }: { item: UntrustedRead }) {
+  const { headers, body } = readable(item.excerpt);
+  return (
+    <div>
+      <div className="excerpt">
+        {headers.length > 0 && (
+          <div className="excerpt-head">
+            {headers.map(([key, value]) => (
+              <span key={key}>
+                <b>{key}</b> {value}
+              </span>
+            ))}
+          </div>
+        )}
+        {highlight(body).map((part, index) => (part.flagged ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>))}
+      </div>
+      <div className="ai-meta mono">{item.tool}</div>
+    </div>
+  );
+}
+
+function instructsTheAgent(item: UntrustedRead): boolean {
+  return highlight(readable(item.excerpt).body).some((part) => part.flagged);
+}
+
+function sourceCount(count: number, kind = ""): string {
+  return `${count} ${kind}untrusted source${count > 1 ? "s" : ""}`;
 }
 
 function shortReason(rule: string): string {
