@@ -6,7 +6,7 @@ This page separates what has actually been run from what is still pending. Dates
 
 | What | How | Result |
 | --- | --- | --- |
-| Rules, simulator semantics, money trail | `make test` (63 tests) | Pass, 31 Oct |
+| Rules, simulator semantics, money trail, explainer | `make test` (73 tests) | Pass, 7 Nov |
 | A refund through the real agent endpoint, retried, with a fresh nonce in the reference | `tests/test_acceptance.py`: `/mcp/{key}/` → proxy → gateway → money server → simulator | Pass, 27 Oct. One intent, two attempts, one PayPal id, 7.00 refunded once |
 | A held move waits for a human, runs after approval | acceptance test | Pass, 27 Oct |
 | A denied move pays nothing, and a retry stays denied | acceptance test | Pass, 27 Oct |
@@ -28,6 +28,7 @@ This page separates what has actually been run from what is still pending. Dates
 | An agent with no judgement is held on both bad tickets, on the real sandbox | `demo/naive_agent.py`, a script and not an AI, through its own Countersign URL, in a separate data folder. Nobody decided the holds | 31 Oct. 450.00 refund (T-1003) held by the auto-approve, daily and after-untrusted-content rules. 35.00 payout to the look-alike address (T-1004) held as a first payout to that address. Both expired after 90 s with nothing paid. PayPal independently reports order 1044 `COMPLETED` with 0.00 refunded |
 | The same script, with a human denying both holds | `tests/test_acceptance.py` through `/mcp/{key}/` with the simulator | Pass, 31 Oct. Both denied, nothing moved, the agent's key never printed |
 | A second agent can't pay a ticket another agent already paid, on the real sandbox | `demo/naive_agent.py` asking for T-1001 and T-1002 on a copy of the real money trail, where Claude Code paid both days earlier | 31 Oct. Both refused at once with "already paid", and neither reached PayPal. PayPal reports 12.00 and 40.00 refunded before and after |
+| Claude explains a held move, and answers a question about the money trail, live on the real sandbox | `COUNTERSIGN_EXPLAINER=claude-code`: the local Claude Code CLI on its own sign-in, with no API key, every tool off and none of Countersign's secrets in its environment. `demo/naive_agent.py` made the holds and nobody decided them. Read through the console API | 7 Nov. 450.00 refund (T-1003): note in under 9 s, "Ticket contains hidden prompt injection trying to force a full $450 refund", high risk, suggests deny. 35.00 payout (T-1004): "Payout targets a lookalike domain, not the real supplier's address", high risk, suggests deny. Both by `claude-sonnet-5` via Claude Code. "held payouts over $20" became the filter payout, held, amount over 20, in 4.4 s. Both holds expired with nothing paid, and PayPal's refund totals were unchanged. Told to run a command, the tool-less Claude Code created no file |
 | Two agents racing on one ticket pay once | `tests/test_acceptance.py` through `/mcp/{key}/` with the simulator, both agents calling at the same moment | Pass, 31 Oct. 7.00 refunded once. Both agents' moves use one `PayPal-Request-Id`, so PayPal itself refuses to pay twice. The race has not been run against the real sandbox |
 
 ## Known issues
@@ -41,6 +42,7 @@ This page separates what has actually been run from what is still pending. Dates
 | What | Needs | How to run |
 | --- | --- | --- |
 | A held payout approved by a human on the sandbox | A human in the console, and a sandbox account with funds in the payout currency | Send a payout to a payee not on the agent's list, then approve it |
-| Claude hold explanations and "Ask the money trail" live | `ANTHROPIC_API_KEY` | Hold a move with the key set; ask the trail a question |
-| Real clients: Claude Code, claude.ai, ChatGPT, OpenClaw | A running Countersign (public HTTPS for cloud clients) | Agents → Connect an agent |
+| Claude hold explanations and "Ask the money trail" through the Anthropic API | `ANTHROPIC_API_KEY` | `COUNTERSIGN_EXPLAINER=anthropic`, hold a move, ask the trail a question. Live so far only through Claude Code (above) |
+| `demo/support_agent.py` live | `ANTHROPIC_API_KEY` | The live agent runs used Claude Code headless instead |
+| Real clients: claude.ai, ChatGPT, OpenClaw | A running Countersign (public HTTPS for cloud clients) | Agents → Connect an agent. Claude Code is verified above |
 | Render deployment | A Render account | Blueprint from `render.yaml` |

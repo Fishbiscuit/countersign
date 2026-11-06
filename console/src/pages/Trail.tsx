@@ -152,7 +152,7 @@ export function Trail({ status }: { status: Status }) {
         <input
           id="ask"
           className="input"
-          placeholder={status.ai_explanations ? `Ask the money trail, e.g. "${EXAMPLES[0]}"` : "Ask the money trail (needs ANTHROPIC_API_KEY)"}
+          placeholder={status.ai_explanations ? `Ask the money trail, e.g. "${EXAMPLES[0]}"` : "Ask the money trail (AI is off: see Setup)"}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={!status.ai_explanations}

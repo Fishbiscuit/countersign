@@ -2,7 +2,7 @@
 
 Record with a real person speaking. Use the PayPal Sandbox backend so PayPal ids are real. Before recording:
 - Countersign is deployed (or running locally for Claude Code);
-- `ANTHROPIC_API_KEY` is in `.env`, and `demo/support_agent.py` has been rehearsed once. Ask the money trail and Claude's risk note need the key too;
+- `COUNTERSIGN_EXPLAINER=claude-code` is in `.env` and Claude Code is signed in, so Claude's risk note and Ask the money trail work with no API key;
 - `demo/seed.py` has created the shop's payments;
 - the phone has the console's `/m` page open and signed in;
 - the chaos bench has been run once.

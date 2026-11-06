@@ -118,7 +118,7 @@ export function Setup({ status }: { status: Status }) {
           <p style={{ margin: "6px 0 0" }}>
             {status.ai_explanations
               ? `Claude (${status.ai_model}) explains each hold and powers "Ask the money trail". It never approves or denies.`
-              : "Off. Set ANTHROPIC_API_KEY so Claude explains holds and answers questions about the money trail."}
+              : "Off. Claude can explain holds and answer questions about the money trail. Locally, set COUNTERSIGN_EXPLAINER=claude-code to use your signed-in Claude Code, with no API key. When deployed, set ANTHROPIC_API_KEY."}
           </p>
         </section>
       </div>

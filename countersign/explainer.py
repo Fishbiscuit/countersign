@@ -5,11 +5,21 @@ held; Claude explains the risk in plain words (for example, that the ticket
 the agent read contains instructions aimed at the AI) so the human can decide
 faster. It also turns plain-English questions about the money trail into an
 AG Grid filter.
+
+Claude is reached one of two ways, chosen in settings: the Anthropic API with
+an API key, for a deployment, or the local Claude Code CLI on its own sign-in,
+so a local demo needs no API key. Claude Code runs with every tool, plugin,
+hook and settings file off, in an empty folder, with none of Countersign's
+secrets in its environment. Untrusted ticket text can at worst change the
+words of a note, which a human reads as advice.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
+import tempfile
 from typing import Any
 
 import anthropic
@@ -105,13 +115,34 @@ currency (text), amount_value (number), created_at (sortable). Only use these fi
 question does not ask for."""
 
 
+CLAUDE_CODE_TIMEOUT_S = 60
+# The only environment the Claude Code child gets: enough to find its own sign-in, nothing of Countersign's.
+CLAUDE_CODE_ENV = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TMPDIR", "SHELL", "CLAUDE_CONFIG_DIR")
+
+
+class ExplainerError(RuntimeError):
+    """Claude did not give a usable answer."""
+
+
 class Explainer:
     def __init__(self, settings: Settings):
-        self.enabled = bool(settings.anthropic_api_key)
-        self.model = settings.anthropic_model
-        self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) if self.enabled else None
+        self.backend = settings.explainer
+        self.enabled = self.backend != "off"
+        self._client = None
+        self._claude_code_bin = settings.claude_code_bin
+        self._claude_code_model = settings.claude_code_model
+        if self.backend == "anthropic":
+            self.model = settings.anthropic_model
+            self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        elif self.backend == "claude-code":
+            # Replaced by the model that actually answered, after the first call.
+            self.model = f"{settings.claude_code_model or 'default model'} via Claude Code"
+        else:
+            self.model = settings.anthropic_model
 
     async def _structured(self, system: str, prompt: str, schema: dict[str, Any], effort: str) -> dict[str, Any] | None:
+        if self.backend == "claude-code":
+            return await self._via_claude_code(system, prompt, schema, effort)
         assert self._client is not None
         response = await self._client.beta.messages.create(
             model=self.model,
@@ -126,6 +157,58 @@ class Explainer:
             return None
         text = next((block.text for block in response.content if block.type == "text"), None)
         return json.loads(text) if text else None
+
+    async def _via_claude_code(self, system: str, prompt: str, schema: dict[str, Any], effort: str) -> dict[str, Any] | None:
+        args = [
+            self._claude_code_bin,
+            "--print",
+            "--output-format",
+            "json",
+            "--json-schema",
+            json.dumps(schema),
+            "--system-prompt",
+            system,
+            "--tools",
+            "",
+            "--safe-mode",
+            "--strict-mcp-config",
+            "--setting-sources",
+            "",
+            "--no-session-persistence",
+            "--disable-slash-commands",
+            "--permission-mode",
+            "dontAsk",
+            "--effort",
+            effort,
+        ]
+        if self._claude_code_model:
+            args += ["--model", self._claude_code_model]
+        child_env = {name: os.environ[name] for name in CLAUDE_CODE_ENV if name in os.environ}
+        with tempfile.TemporaryDirectory(prefix="countersign-claude-") as empty_dir:
+            process = await asyncio.create_subprocess_exec(
+                *args,
+                cwd=empty_dir,
+                env=child_env,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                stdout, _ = await asyncio.wait_for(process.communicate(prompt.encode()), CLAUDE_CODE_TIMEOUT_S)
+            except TimeoutError:
+                process.kill()
+                await process.wait()
+                raise ExplainerError(f"Claude Code did not answer within {CLAUDE_CODE_TIMEOUT_S}s") from None
+        result = json.loads(stdout or b"null")
+        if not isinstance(result, dict) or result.get("is_error") or process.returncode != 0:
+            raise ExplainerError(f"Claude Code failed (exit {process.returncode})")
+        # Claude Code can also run a small model for its own housekeeping, so credit the one that wrote the answer.
+        usage = result.get("modelUsage") or {}
+        used = max(usage, key=lambda model: usage[model].get("outputTokens", 0), default=None)
+        if used:
+            self.model = f"{used} via Claude Code"
+        answer = result.get("structured_output")
+        return answer if isinstance(answer, dict) else None
 
     async def explain(self, intent: Intent) -> dict[str, Any] | None:
         if not self.enabled:
@@ -156,4 +239,4 @@ class Explainer:
         return await self._structured(GRID_SYSTEM, question[:500], GRID_SCHEMA, effort="low")
 
 
-ANTHROPIC_ERRORS = (anthropic.APIStatusError, anthropic.APIConnectionError, json.JSONDecodeError)
+EXPLAINER_ERRORS = (anthropic.APIStatusError, anthropic.APIConnectionError, json.JSONDecodeError, ExplainerError, OSError)

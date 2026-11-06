@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from countersign import __version__
 from countersign.connect import CLIENT_IDS, CLIENTS, instructions, mcp_url
-from countersign.explainer import ANTHROPIC_ERRORS, Explainer
+from countersign.explainer import EXPLAINER_ERRORS, Explainer
 from countersign.gateway_runner import REPO_ROOT, start_gateway
 from countersign.mcp_proxy import make_router
 from countersign.money import MoneyError, fmt, parse_amount
@@ -118,7 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     continue
                 try:
                     explanation = await explainer.explain(intent)
-                except ANTHROPIC_ERRORS as exc:
+                except EXPLAINER_ERRORS as exc:
                     explanation = {"error": f"AI explanation unavailable: {type(exc).__name__}"}
                 store.update_intent(intent.id, "hold_explained", explanation=explanation or {"error": "No explanation returned"})
 
@@ -218,10 +218,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/ask-grid", dependencies=admin)
     async def ask_grid(body: GridQuestion) -> dict[str, Any]:
         if not explainer.enabled:
-            raise HTTPException(503, "AI search is off: set ANTHROPIC_API_KEY")
+            raise HTTPException(503, "AI search is off: set COUNTERSIGN_EXPLAINER (see Setup)")
         try:
             result = await explainer.grid_filter(body.question)
-        except ANTHROPIC_ERRORS as exc:
+        except EXPLAINER_ERRORS as exc:
             raise HTTPException(502, f"AI search failed: {type(exc).__name__}") from exc
         if result is None:
             raise HTTPException(422, "Claude could not turn that into a filter")

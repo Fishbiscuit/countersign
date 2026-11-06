@@ -83,6 +83,8 @@ uv run countersign agent "Kiln support desk" --client claude-code
 2. In `.env`: `COUNTERSIGN_BACKEND=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`. `uv run python -m bench.check_keys` confirms PayPal accepts them.
 3. `make serve`, then `uv run python demo/seed.py` prints one checkout link per demo order. Approve each with your sandbox **personal** account.
 
+To have Claude explain holds and answer questions about the money trail without an API key, sign in to [Claude Code](https://claude.com/claude-code) and set `COUNTERSIGN_EXPLAINER=claude-code` in `.env`.
+
 Countersign's sandbox backend is fixed to `api-m.sandbox.paypal.com`; there is no setting that points it at live PayPal. **Simulated PayPal** makes no PayPal calls, and every screen labels which backend is active. Countersign never switches between them on its own.
 
 ### Deploy (Render)
@@ -179,7 +181,10 @@ More in [docs/architecture.md](docs/architecture.md).
 
 ## AI and sponsor tech
 
-- **Claude** (`claude-opus-5-5`, structured output, server-side fallbacks): hold explanations, "Ask the money trail", and the demo support agent (Anthropic tool runner over MCP).
+- **Claude**: hold explanations and "Ask the money trail", both as structured output. Choose where Claude comes from with `COUNTERSIGN_EXPLAINER`:
+  - `claude-code` runs the Claude Code CLI on your machine, on its own sign-in, so a local demo needs no API key. It runs with every tool, plugin, hook and settings file off, in an empty folder, and none of Countersign's secrets are in its environment. The note records which model answered.
+  - `anthropic` calls the Anthropic API with `ANTHROPIC_API_KEY` (`claude-opus-5-5`, server-side fallbacks), for a deployment. It's the default when a key is set.
+- **Claude as the agent**: the live sandbox runs used Claude Code headless as the support agent, connected only to its Countersign URL. `demo/support_agent.py` does the same job through the Anthropic API (tool runner over MCP) and needs a key.
 - **AG Grid**: the money trail, with Claude producing AG Grid filter models from plain English, plus quick search and CSV export.
 - **Bryntum Scheduler**: agent activity on a timeline, one row per agent. Uses Bryntum's public trial package, which is fine for a hackathon demo but not licensed for production.
 - **Render**: Blueprint deploy (`render.yaml`).
