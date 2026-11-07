@@ -1,24 +1,32 @@
-/* Countersign — paper, ink and a seal. */
+/* Countersign — paper, ink and a seal. Main colours: pale pine (the page) and deep burgundy (the brand, the seal, denied). Butter yellow is the accent (the active page, held). */
 
 :root {
   color-scheme: light;
-  --paper: #f6f3ec;
-  --paper-raised: #fffdf8;
-  --paper-sunk: #efeadf;
+  --paper: #e4eee7;
+  --paper-raised: #fbfcfa;
+  --paper-sunk: #d9e7dd;
   --ink: #17202b;
-  --ink-2: #48525f;
-  --ink-3: #7a8390;
-  --rule: #e2dccf;
-  --rule-strong: #cfc7b6;
-  --accent: #2443d6;
-  --accent-wash: #e8ecfd;
-  --seal: #b4381f;
-  --seal-wash: #f8e6df;
-  --gold: #a86a12;
-  --gold-wash: #f7ecd7;
-  --ok: #1d7448;
-  --ok-wash: #e2f1e8;
-  --muted-wash: #ece9e2;
+  --ink-2: #44514c;
+  --ink-3: #5d6b65;
+  --rule: #c8dacd;
+  --rule-strong: #adc5b5;
+  --accent: #2c5b4e;
+  --accent-wash: #dbe8df;
+  --seal: #7a1f35;
+  --seal-wash: #f5e1e5;
+  --gold: #755608;
+  --gold-wash: #f8e6a0;
+  --butter: #e8c24f;
+  --ok: #2d6a4b;
+  --ok-wash: #deebe2;
+  --on-accent: #ffffff;
+  --on-seal: #ffffff;
+  --brand: #6e1a2f;
+  --brand-ink: #f7ecdf;
+  --brand-ink-2: #e2c6cd;
+  --butter-ink: #4a1220;
+  --title: #6e1a2f;
+  --muted-wash: #d6e5da;
   --shadow: 0 1px 0 rgba(23, 32, 43, 0.04), 0 8px 24px -12px rgba(23, 32, 43, 0.18);
   --radius: 10px;
   --radius-lg: 16px;
@@ -30,46 +38,62 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #0e1217;
-    --paper-raised: #151b23;
-    --paper-sunk: #0a0d11;
-    --ink: #ece6da;
-    --ink-2: #b4ad9f;
-    --ink-3: #847e72;
-    --rule: #242c37;
-    --rule-strong: #343d4a;
-    --accent: #8ea2ff;
-    --accent-wash: #1b2347;
-    --seal: #f07450;
-    --seal-wash: #3a1d15;
-    --gold: #e2b04a;
-    --gold-wash: #33270f;
-    --ok: #53c78d;
-    --ok-wash: #11301f;
-    --muted-wash: #1c222b;
+    --paper: #0f1916;
+    --paper-raised: #15211d;
+    --paper-sunk: #0b1210;
+    --ink: #e6efe9;
+    --ink-2: #b3c4bb;
+    --ink-3: #8a9e94;
+    --rule: #22312b;
+    --rule-strong: #31443c;
+    --accent: #a6cbbb;
+    --accent-wash: #173029;
+    --seal: #e8909e;
+    --seal-wash: #3a1922;
+    --gold: #f2d585;
+    --gold-wash: #37300f;
+    --butter: #f2d585;
+    --ok: #93d0ac;
+    --ok-wash: #14301f;
+    --on-accent: #0e1217;
+    --on-seal: #0e1217;
+    --brand: #3d0f1c;
+    --brand-ink: #f4e6e9;
+    --brand-ink-2: #d9b8c0;
+    --butter-ink: #3d0f1c;
+    --title: #bcd6c8;
+    --muted-wash: #1a2823;
     --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0e1217;
-  --paper-raised: #151b23;
-  --paper-sunk: #0a0d11;
-  --ink: #ece6da;
-  --ink-2: #b4ad9f;
-  --ink-3: #847e72;
-  --rule: #242c37;
-  --rule-strong: #343d4a;
-  --accent: #8ea2ff;
-  --accent-wash: #1b2347;
-  --seal: #f07450;
-  --seal-wash: #3a1d15;
-  --gold: #e2b04a;
-  --gold-wash: #33270f;
-  --ok: #53c78d;
-  --ok-wash: #11301f;
-  --muted-wash: #1c222b;
+  --paper: #0f1916;
+  --paper-raised: #15211d;
+  --paper-sunk: #0b1210;
+  --ink: #e6efe9;
+  --ink-2: #b3c4bb;
+  --ink-3: #8a9e94;
+  --rule: #22312b;
+  --rule-strong: #31443c;
+  --accent: #a6cbbb;
+  --accent-wash: #173029;
+  --seal: #e8909e;
+  --seal-wash: #3a1922;
+  --gold: #f2d585;
+  --gold-wash: #37300f;
+  --butter: #f2d585;
+  --ok: #93d0ac;
+  --ok-wash: #14301f;
+  --on-accent: #0e1217;
+  --on-seal: #0e1217;
+  --brand: #3d0f1c;
+  --brand-ink: #f4e6e9;
+  --brand-ink-2: #d9b8c0;
+  --butter-ink: #3d0f1c;
+  --title: #bcd6c8;
+  --muted-wash: #1a2823;
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
 }
 
@@ -163,8 +187,12 @@ a {
   flex-direction: column;
   gap: 4px;
   padding: 22px 14px 18px;
-  border-right: 1px solid var(--rule);
-  background: var(--paper);
+  background: var(--brand);
+  color: var(--brand-ink);
+  /* On burgundy, the seal and status colours lighten */
+  --seal: var(--butter);
+  --on-seal: var(--brand);
+  --ok: #a6d8b9;
 }
 
 .brand {
@@ -172,7 +200,7 @@ a {
   align-items: center;
   gap: 10px;
   padding: 2px 8px 20px;
-  color: var(--ink);
+  color: var(--brand-ink);
   text-decoration: none;
 }
 
@@ -188,7 +216,7 @@ a {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  color: var(--ink-2);
+  color: var(--brand-ink-2);
   text-decoration: none;
   font-weight: 500;
   cursor: pointer;
@@ -199,14 +227,31 @@ a {
 }
 
 .nav-link:hover {
-  background: var(--muted-wash);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--brand-ink);
 }
 
 .nav-link[aria-current="page"] {
-  background: var(--paper-raised);
-  color: var(--ink);
-  box-shadow: var(--shadow);
+  background: var(--butter);
+  color: var(--butter-ink);
+  font-weight: 600;
+}
+
+.nav-link[aria-current="page"] .badge {
+  background: var(--brand);
+  color: var(--butter);
+}
+
+.sidebar .muted {
+  color: var(--brand-ink-2);
+}
+
+.sidebar .backend-tag {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.sidebar .backend-tag strong {
+  color: var(--butter);
 }
 
 .nav-link .badge {
@@ -240,6 +285,7 @@ a {
   line-height: 1.02;
   margin: 4px 0 0;
   font-weight: 400;
+  color: var(--title);
 }
 
 .page-sub {
@@ -304,7 +350,7 @@ a {
 .btn-sign {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-sign:hover {
@@ -602,7 +648,7 @@ summary:focus-visible {
   position: relative;
   overflow: hidden;
   padding: 18px 20px 16px;
-  border-left: 4px solid var(--gold);
+  border-left: 4px solid var(--butter);
 }
 
 .hold.is-approved {
@@ -676,7 +722,7 @@ summary:focus-visible {
 }
 
 .ring .bar {
-  stroke: var(--gold);
+  stroke: var(--butter);
   stroke-linecap: round;
   transition: stroke-dashoffset 1s linear;
 }
@@ -1310,7 +1356,8 @@ details.fold[open] > summary .chev {
 }
 
 .b-sch-event.cs-held {
-  background: var(--gold);
+  background: var(--butter);
+  color: #17202b;
 }
 
 .b-sch-event.cs-denied,

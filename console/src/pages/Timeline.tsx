@@ -37,7 +37,8 @@ export default function Timeline() {
           endDate,
           name: `${i.action === "refund" ? "Refund" : "Payout"} ${money(i.amount, i.currency)}`,
           cls: `cs-${i.status}`,
-          eventColor: i.status === "executed" ? "green" : i.status === "held" ? "orange" : ["denied", "blocked", "failed"].includes(i.status) ? "red" : "blue",
+          // Pale pine family, butter yellow and deep burgundy, as in styles.css
+          eventColor: i.status === "executed" ? "#2d6a4b" : i.status === "held" ? "#e8c24f" : ["denied", "blocked", "failed"].includes(i.status) ? "#7a1f35" : "#2c5b4e",
         };
       }),
       ...window_(recent.map((i) => new Date(i.created_at).getTime()), now),

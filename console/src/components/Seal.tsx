@@ -18,6 +18,7 @@ export function SignatureLine({ approved, caption }: { approved: boolean; captio
 export function Seal({ approved }: { approved: boolean }) {
   const word = approved ? "COUNTERSIGNED" : "DENIED";
   const color = approved ? "var(--accent)" : "var(--seal)";
+  const ink = approved ? "var(--on-accent)" : "var(--on-seal)";
   const ring = approved ? `${word} · ${word} · ` : `${word} · ${word} · ${word} · `;
   return (
     <svg className="seal" viewBox="0 0 128 128" aria-hidden="true">
@@ -25,17 +26,17 @@ export function Seal({ approved }: { approved: boolean }) {
         <path id={`ring-${word}`} d="M64 64 m -46 0 a 46 46 0 1 1 92 0 a 46 46 0 1 1 -92 0" />
       </defs>
       <circle cx="64" cy="64" r="60" fill={color} opacity="0.94" />
-      <circle cx="64" cy="64" r="53" fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="1.2" />
-      <circle cx="64" cy="64" r="33" fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="1.2" strokeDasharray="2 3" />
-      <text fill="#fff">
+      <circle cx="64" cy="64" r="53" fill="none" stroke={ink} strokeOpacity="0.7" strokeWidth="1.2" />
+      <circle cx="64" cy="64" r="33" fill="none" stroke={ink} strokeOpacity="0.7" strokeWidth="1.2" strokeDasharray="2 3" />
+      <text fill={ink}>
         <textPath href={`#ring-${word}`} textLength="282">
           {ring}
         </textPath>
       </text>
       {approved ? (
-        <path d="M48 65 l11 11 l22 -24" fill="none" stroke="#fff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M48 65 l11 11 l22 -24" fill="none" stroke={ink} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
       ) : (
-        <path d="M51 51 l26 26 M77 51 l-26 26" fill="none" stroke="#fff" strokeWidth="6" strokeLinecap="round" />
+        <path d="M51 51 l26 26 M77 51 l-26 26" fill="none" stroke={ink} strokeWidth="6" strokeLinecap="round" />
       )}
     </svg>
   );
@@ -45,11 +46,11 @@ export function SealMark({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
       <circle cx="32" cy="32" r="29" fill="var(--seal)" />
-      <circle cx="32" cy="32" r="23" fill="none" stroke="#fff6ee" strokeWidth="2" strokeDasharray="2 3" />
+      <circle cx="32" cy="32" r="23" fill="none" stroke="var(--on-seal)" strokeWidth="2" strokeDasharray="2 3" />
       <path
         d="M17 38c5-9 8-14 11-14 3 0 1 9 4 9s5-7 8-7 3 5 7 4"
         fill="none"
-        stroke="#fff6ee"
+        stroke="var(--on-seal)"
         strokeWidth="3.2"
         strokeLinecap="round"
         strokeLinejoin="round"
