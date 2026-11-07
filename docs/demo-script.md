@@ -54,7 +54,7 @@ Each hold waits 90 seconds, then expires with nothing paid. The agent waits at t
 
 ## Part 1: the story (motion design)
 
-The opening is a separate video file, made with code from the real material: the ticket text in `demo/tickets.json` and the seal in `docs/media/countersign-seal.svg`. Record the voice-over first; the animation's timing is then fitted to it.
+The opening and the closing card are separate video files, made with code from the real material: the ticket text in `demo/tickets.json` and the seal in `docs/media/countersign-seal.svg`. Record the voice-over first; the animation's timing is then fitted to it.
 
 | Time | On screen | Say |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ The opening is a separate video file, made with code from the real material: the
 | 2:13 | **Money trail:** open the 12.00 row's drawer, showing the PayPal-Request-Id, attempts and "PayPal says" | "Every money move gets one PayPal request id. If a reply gets lost and the agent tries again, PayPal hands back the first refund instead of paying twice. We checked that on the sandbox." |
 | 2:28 | **Ask the money trail:** type "what did the naive script ask for?". The grid filters to the script's moves | "I can ask the trail in plain English. Claude turns the question into a filter." |
 | 2:38 | **Bench:** 631.00 vs 0.00 | "On our test bench, we ran six ways an agent can go wrong. With the agent calling PayPal directly, six hundred and thirty-one dollars moved that shouldn't have. Through Countersign, none. The bench uses a PayPal simulator with scripted faults. Everything else you've seen ran on the real sandbox." |
-| 2:55 | The seal, then the presenter on camera if they like | "Countersign: a second signature on every money move an AI agent makes. I designed it, and Claude Code wrote the code with me. It's built on the open-source OpenEdison gateway, the PayPal Sandbox, Claude, AG Grid and Bryntum." |
+| 2:55 | **Closing card (motion design):** burgundy spreads from the screen, the butter seal stamps down, then "Code by Claude Code" and the "Built on" chips. The presenter can appear on camera after it | "Countersign: a second signature on every money move an AI agent makes. I designed it, and Claude Code wrote the code with me. It's built on the open-source OpenEdison gateway, the PayPal Sandbox, Claude, AG Grid and Bryntum." |
 
 **Start the support agent** at 0:56, in the second terminal. Claude Code's only tools are its Countersign URL, read from the file made in step 2, so the URL never appears on screen.
 

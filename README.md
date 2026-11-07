@@ -15,7 +15,7 @@ A PayPal safety gateway for Claude, ChatGPT, OpenClaw, Cursor, Grok and any MCP 
   <a href="#paypal-apis-used">PayPal APIs</a>
 </p>
 
-![Countersign console: a prompt-injected refund held for a human, with the untrusted text highlighted](docs/media/live.jpg)
+![Countersign console: a prompt-injected 450.00 refund held for a human, with Claude's risk note and the untrusted text highlighted](docs/media/live.jpg)
 
 ---
 
