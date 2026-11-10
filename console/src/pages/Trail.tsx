@@ -210,6 +210,13 @@ export function Trail({ status }: { status: Status }) {
   );
 }
 
+// The console has one sign-in, so it knows a person decided, not who.
+function decidedBy(stored: string | null): string | null {
+  if (stored === "human via console") return "A person, in the console";
+  if (stored === "human via phone") return "A person, on the phone view";
+  return stored;
+}
+
 function IntentDrawer({ intent, onClose }: { intent: Intent; onClose: () => void }) {
   return (
     <>
@@ -239,7 +246,7 @@ function IntentDrawer({ intent, onClose }: { intent: Intent; onClose: () => void
           <dt>Attempts</dt>
           <dd>{intent.attempts}</dd>
           <dt>Decided by</dt>
-          <dd>{intent.decided_by ?? (intent.status === "allowed" || intent.status === "executed" ? "rules (within mandate)" : "—")}</dd>
+          <dd>{decidedBy(intent.decided_by) ?? (intent.status === "allowed" || intent.status === "executed" ? "rules (within mandate)" : "—")}</dd>
           <dt>PayPal ID</dt>
           <dd className="mono">{intent.paypal_id ?? "—"}</dd>
           <dt>PayPal says</dt>

@@ -1,5 +1,8 @@
-import "@bryntum/scheduler/scheduler.css";
-import { BryntumScheduler } from "@bryntum/scheduler-react";
+import "@bryntum/core-community/fontawesome/css/fontawesome.css";
+import "@bryntum/core-community/fontawesome/css/solid.css";
+import "@bryntum/scheduler-community/scheduler.css";
+import "@bryntum/scheduler-community/svalbard-light.css";
+import { BryntumScheduler } from "@bryntum/scheduler-react-community";
 import { useMemo } from "react";
 import { api } from "../lib/api";
 import { money } from "../lib/format";
@@ -8,13 +11,6 @@ import { useLoad } from "../lib/live";
 const WINDOW_MS = 2 * 60 * 60 * 1000;
 const MIN_SPAN_MS = 30 * 60 * 1000;
 const MIN_EVENT_MS = 3 * 60 * 1000;
-
-// Bryntum ships separate light and dark themes; load the one that matches the console.
-if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  void import("@bryntum/scheduler/svalbard-dark.css");
-} else {
-  void import("@bryntum/scheduler/svalbard-light.css");
-}
 
 /** Agent activity on a time axis: one row per agent, one bar per money move, from request to decision. */
 export default function Timeline() {

@@ -4,7 +4,7 @@
 
 <h1 align="center">Countersign</h1>
 
-<p align="center"><b>A second signature on every money move an AI agent makes.</b><br/>
+<p align="center"><b>A second signature when an AI agent’s money move needs review.</b><br/>
 A PayPal safety gateway for Claude, ChatGPT, OpenClaw, Cursor, Grok and any MCP agent.</p>
 
 <p align="center">
@@ -15,7 +15,9 @@ A PayPal safety gateway for Claude, ChatGPT, OpenClaw, Cursor, Grok and any MCP 
   <a href="#paypal-apis-used">PayPal APIs</a>
 </p>
 
-![Countersign console: a prompt-injected 450.00 refund held for a human, with Claude's risk note and the untrusted text highlighted](docs/media/live.jpg)
+![Countersign XP-style console showing an expired hold, a paid sandbox refund and a blocked repeat](docs/media/xp-live.jpg)
+
+The live page after a sandbox run: one $40 request expired, a later request was paid, and a scripted repeat was blocked. This take used a 900-second hold; the default is 90 seconds.
 
 ---
 
@@ -28,7 +30,7 @@ Agents can now move money. PayPal ships an MCP server and an Agent Toolkit, and 
 - **Look-alike payees.** An email asks for a payout to `kiln-supp1ies.example.com` (a digit 1, not an l).
 - **Runaway loops.** An assistant meant to send 10.00 once sends it twelve times.
 
-Countersign sits between any agent and PayPal. Each agent gets its own URL and mandate. Money inside the mandate moves at once; anything outside it waits for a human to countersign, from the console or a phone. Nothing is paid until they do, and a retry can never pay twice.
+Countersign sits between any agent and PayPal. Each agent gets its own URL and mandate. Money inside the mandate can move at once; other moves are held for a signature or blocked. Held moves are not paid until approved. Countersign checks repeat requests and uses stable PayPal request IDs to reduce duplicate payments.
 
 ## The chaos bench
 
@@ -46,25 +48,25 @@ The same six failures, run against fresh payments: once with an agent calling Pa
 
 The bench uses the simulator because lost responses need scripted faults, and its "human" follows each scenario's script. `bench/sandbox_check.py` runs the idempotency part against the real PayPal Sandbox. In the sandbox, a retried refund without `PayPal-Request-Id` refunded twice; with the same id it returned the first refund, including after a mocked PayPal 500 ([result](docs/sandbox-check.json)). What has been verified so far, and how, is in [docs/evidence.md](docs/evidence.md).
 
-![Chaos bench in the console](docs/media/bench.jpg)
+
 
 ## What it does
 
 - **Per-agent mandates.** What each agent may do (refunds, payouts), auto-approve limit, hard limit per move, 24-hour limit, trusted payees, speed limit, duplicate window, and a lower limit after the agent has read untrusted content.
 - **Holds that fail closed.** Over the mandate, the agent's call waits while a human sees the amount, the reason, the rule receipt and the untrusted text the agent read, with injection-like phrases highlighted. No decision in time means nothing is paid. An expired hold can still be approved; the agent's retry then goes through.
-- **Exactly-once money.** Every money move gets one `PayPal-Request-Id`, whichever agent asks for it. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice. A second agent asking for a move that's already paid is refused, and two agents racing share the id, so PayPal pays once. Payouts reuse that id as their batch id: PayPal refuses a repeated batch, and Countersign reads back the batch that already paid.
+- **Retry and duplicate checks.** Every money move gets one `PayPal-Request-Id`, whichever agent asks for it. Retries of the same intent are absorbed by Countersign, and if a PayPal response was lost, the retry asks PayPal again with the same id instead of paying twice. A second agent asking for a move that's already paid is refused, and two agents racing share the id. The race was verified on the simulator; it has not yet been run on the PayPal Sandbox. Payouts reuse that id as their batch id: PayPal refuses a repeated batch, and Countersign reads back the batch that already paid.
 - **The lethal trifecta, for money.** Built on [OpenEdison](https://github.com/Edison-Watch/open-edison), the open-source gateway behind [SealGate](https://sealgate.ai). It tracks whether an agent has read untrusted content and private data before trying to move money.
 - **Claude explains, rules decide, humans approve.** Claude reads each held move and writes a one-line risk note (for example, *"Ticket tells the AI a manager approved a refund"*). It never approves anything.
 - **A money trail you can ask questions of.** Every request, rule, decision and PayPal result in AG Grid. Type *"held payouts over $20"* and Claude turns it into a grid filter. PayPal's own confirmation is kept separate from what the agent was told.
 
-![A held move after a human decided: signature and seal](docs/media/holds.jpg)
+![Money trail showing the decision and the PayPal Sandbox result](docs/media/xp-trail.jpg)
 
 ## Run it in two minutes
 
 Needs [uv](https://docs.astral.sh/uv/) and Node 20+.
 
 ```bash
-git clone <this repo> countersign && cd countersign
+git clone https://github.com/Fishbiscuit/countersign.git && cd countersign
 cp .env.example .env          # COUNTERSIGN_BACKEND=simulated to start
 make install
 make serve                    # prints a sign-in link for http://127.0.0.1:8484
@@ -175,7 +177,7 @@ More in [docs/architecture.md](docs/architecture.md).
 | Orders v2: create, get, capture (`/v2/checkout/orders`) | Test payments for demos; summing refunds on a payment |
 | Payouts v1: create, get (`/v1/payments/payouts`) | Agent payouts ("safe transfers") and their status |
 | Webhooks: verify signature (`/v1/notifications/verify-webhook-signature`) | Trusting PayPal's own confirmations |
-| `PayPal-Request-Id` header | Exactly-once refunds |
+| `PayPal-Request-Id` header | Prevents repeated refunds for matching requests in the tested cases |
 | `sender_batch_id` on payouts | PayPal refuses a repeated payout batch |
 | `PayPal-Mock-Response` header | Negative testing of failure paths in the sandbox |
 
@@ -186,7 +188,7 @@ More in [docs/architecture.md](docs/architecture.md).
   - `anthropic` calls the Anthropic API with `ANTHROPIC_API_KEY` (`claude-opus-5-5`, server-side fallbacks), for a deployment. It's the default when a key is set.
 - **Claude as the agent**: the live sandbox runs used Claude Code headless as the support agent, connected only to its Countersign URL. `demo/support_agent.py` does the same job through the Anthropic API (tool runner over MCP) and needs a key.
 - **AG Grid**: the money trail, with Claude producing AG Grid filter models from plain English, plus quick search and CSV export.
-- **Bryntum Scheduler**: agent activity on a timeline, one row per agent. Uses Bryntum's public trial package, which is fine for a hackathon demo but not licensed for production.
+- **Bryntum Scheduler**: agent activity on a timeline, one row per agent. Uses Bryntum Scheduler Community 8.0, distributed under the MIT license.
 - **Render**: Blueprint deploy (`render.yaml`).
 - **Postman**: a collection for the console API in [`postman/`](postman/).
 

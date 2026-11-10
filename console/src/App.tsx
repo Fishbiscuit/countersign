@@ -83,6 +83,10 @@ function Console({ status, connected }: { status: Status; connected: boolean }) 
 
   return (
     <div className="shell">
+      <header className="xp-titlebar">
+        <div className="xp-window-title"><SealMark size={18} /><strong>Countersign</strong><span> — Agent payment console</span></div>
+        <span className="xp-title-status">{status.backend_label}</span>
+      </header>
       <nav className="sidebar" aria-label="Countersign">
         <a
           className="brand"
@@ -152,6 +156,10 @@ function Console({ status, connected }: { status: Status; connected: boolean }) 
         {path === "/bench" && <Bench />}
         {path === "/setup" && <Setup status={status} />}
       </main>
+      <footer className="xp-statusbar">
+        <span>{status.gateway_running ? (connected ? "Gateway connected" : "Reconnecting to gateway…") : "Gateway stopped"}</span>
+        <span>{status.backend === "sandbox" ? "PayPal Sandbox · test money" : "Simulated PayPal · no PayPal calls"}</span>
+      </footer>
     </div>
   );
 }

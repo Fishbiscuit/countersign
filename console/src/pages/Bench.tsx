@@ -63,7 +63,7 @@ export function Bench() {
             <div className="eyebrow">Same agent through Countersign</div>
             <div className="versus-value num">{money(String(totals.countersign_excess))}</div>
             <div className="muted">
-              {totals.holds} moves waited for a human · {totals.retries_absorbed} {Number(totals.retries_absorbed) === 1 ? "retry" : "retries"} absorbed · fair refunds still paid
+              {totals.holds} {Number(totals.holds) === 1 ? "move" : "moves"} waited for a human · {totals.retries_absorbed} {Number(totals.retries_absorbed) === 1 ? "retry" : "retries"} absorbed · fair refunds still paid
             </div>
           </div>
         </div>

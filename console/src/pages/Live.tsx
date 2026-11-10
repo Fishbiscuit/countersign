@@ -22,16 +22,15 @@ export function Live({ status }: { status: Status }) {
       <header className="page-head">
         <div>
           <div className="eyebrow">Live · last 24 hours</div>
-          <h1 className="page-title">Every money move gets a second signature.</h1>
+          <h1 className="page-title">Review the moves your agents can’t make alone.</h1>
           <p className="page-sub">
-            Agents move money through PayPal within the mandate you gave them. Anything outside it waits here for you, and
-            nothing is paid until you countersign.
+            Agents move money through PayPal within the limits you set. Other moves are held for your review or blocked.
           </p>
         </div>
       </header>
 
       <section className="tiles" aria-label="Summary">
-        <Tile label="Paid out" value={moneyTotals(paid?.totals ?? {})} note={`${paid?.count ?? 0} moves executed`} />
+        <Tile label="Paid out" value={moneyTotals(paid?.totals ?? {})} note={`${paid?.count ?? 0} ${(paid?.count ?? 0) === 1 ? "move" : "moves"} executed`} />
         <Tile label="Waiting for you" value={String(s?.held_now ?? 0)} note="held for a countersignature" />
         <Tile label="Stopped" value={moneyTotals(stoppedTotals)} note={`${stopped} denied, blocked or expired`} />
         <Tile label="Retries absorbed" value={String(s?.retries_absorbed ?? 0)} note="never paid twice" />

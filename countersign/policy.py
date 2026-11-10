@@ -30,6 +30,10 @@ DEFAULT_MANDATE: dict[str, Any] = {
 Outcome = Literal["pass", "hold", "block"]
 
 
+def _moves(n: int) -> str:
+    return "move" if n == 1 else "moves"
+
+
 def normalize_mandate(raw: dict[str, Any] | None) -> dict[str, Any]:
     """Fill defaults and reject malformed limits, so a typo cannot silently widen a mandate."""
     mandate = {**DEFAULT_MANDATE, **(raw or {})}
@@ -174,10 +178,10 @@ def evaluate(request: MoveRequest, facts: Facts) -> Decision:
         add(
             "velocity",
             "hold",
-            f"{facts.moves_last_minute} money moves in the last minute (limit {m['velocity_per_minute']}): possible loop",
+            f"{facts.moves_last_minute} money {_moves(facts.moves_last_minute)} in the last minute (limit {m['velocity_per_minute']}): possible loop",
         )
     else:
-        add("velocity", "pass", f"{facts.moves_last_minute} moves in the last minute")
+        add("velocity", "pass", f"{facts.moves_last_minute} {_moves(facts.moves_last_minute)} in the last minute")
 
     window = m["repeat_target_window_minutes"]
     if window and facts.recent_moves_to_target > 0:
